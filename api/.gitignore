@@ -1,0 +1,6 @@
+.venv/
+__pycache__/
+atliq.db
+uploads/
+.pytest_cache/
+server.log

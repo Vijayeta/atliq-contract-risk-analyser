@@ -1,0 +1,149 @@
+{
+  "about": "Golden set for the 15 drafts in Project/Dataset/incoming, built from a full manual read of every draft, signed contract, the tracker, negotiation notes and meeting notes (28 Sep 2026). Added to the dataset by this project. 'section' is the clause as numbered in the draft ('*' = anywhere in the document). 'min' is the lowest acceptable severity. 'conflicts' are register obligation ids (or 'client:<name>' for live client relationships a new restriction would cover). 'entityFail' marks drafts that must fail the entity rule. 'clean' drafts must produce no high-severity finding.",
+  "drafts": {
+    "2026-09-10_harrington_health_msa_draft.md": {
+      "issues": [
+        {"section": "11.2", "topic": "Uncapped daily LDs on total contract value", "min": "high"},
+        {"section": "11.3", "topic": "LDs in addition to actual damages", "min": "high"},
+        {"section": "10.3", "topic": "Unlimited, one-sided liability", "min": "high"},
+        {"section": "9.1", "topic": "Indemnity covers client's own negligence", "min": "high"},
+        {"section": "4.3", "topic": "90-day payment", "min": "high"},
+        {"section": "4.5", "topic": "Set-off across agreements", "min": "medium"},
+        {"section": "5.3", "topic": "No payment for work in progress on termination", "min": "high"},
+        {"section": "3.2", "topic": "Rejection with refund of all fees", "min": "medium"},
+        {"section": "7.2", "topic": "Pre-existing materials assigned", "min": "high"},
+        {"section": "12.4", "topic": "No PHI outside the US (Pune delivery)", "min": "high"},
+        {"section": "2.5", "topic": "No subcontracting without consent (Inc delivers via Pvt Ltd)", "min": "high"},
+        {"section": "13.1", "topic": "$5M cyber cover vs $1M held", "min": "high"}
+      ],
+      "conflicts": ["OB-46"]
+    },
+    "2026-09-16_harrington_health_baa_draft.md": {
+      "issues": [
+        {"section": "8.2", "topic": "Uncapped BAA indemnity incl. fines", "min": "high"},
+        {"section": "8.3", "topic": "$5M insurance vs $1M held", "min": "high"},
+        {"section": "4.1", "topic": "No PHI outside the US, incl. remote access", "min": "high"},
+        {"section": "4.2", "topic": "Subcontractors must be US-organised (Pvt Ltd can't qualify)", "min": "high"},
+        {"section": "5.1", "topic": "24-hour notice, deemed discovery", "min": "high"},
+        {"section": "7.2", "topic": "Audit on 48 hours' notice", "min": "medium"}
+      ],
+      "conflicts": ["OB-46"]
+    },
+    "2026-09-15_travelhub_services_agreement_draft.md": {
+      "issues": [
+        {"section": "7.1", "topic": "Invoices raised by Pvt Ltd but contract names Inc", "min": "high"},
+        {"section": "15.1", "topic": "Dubai law, not AtliQ's", "min": "medium"}
+      ],
+      "conflicts": ["OB-15"],
+      "entityFail": true
+    },
+    "2026-09-18_gulf_crown_hotels_msa_draft.md": {
+      "issues": [
+        {"section": "9.1", "topic": "Warranty 'not bound by any restriction' would be false (Al Noor)", "min": "high"},
+        {"section": "12.2", "topic": "1% of Contract Value per week", "min": "high"},
+        {"section": "12.5", "topic": "No exclusion for client-caused delay", "min": "high"},
+        {"section": "5.3", "topic": "60-day payment", "min": "medium"},
+        {"section": "6.3", "topic": "Only accepted work paid on termination", "min": "medium"},
+        {"section": "10.2", "topic": "Data-protection liability uncapped", "min": "medium"},
+        {"section": "14.1", "topic": "KSA law", "min": "medium"},
+        {"section": "15.3", "topic": "Arabic text prevails", "min": "medium"}
+      ],
+      "conflicts": ["OB-15"]
+    },
+    "2026-09-19_lakeshore_grocers_msa_draft.md": {
+      "issues": [
+        {"section": "Ex A", "topic": "Rate card below Crestline's MFN rates", "min": "high"},
+        {"section": "4.2", "topic": "Rates fixed for 24 months", "min": "medium"}
+      ],
+      "conflicts": ["OB-03"],
+      "noHighOutside": ["Ex A"]
+    },
+    "2026-09-21_blueorchid_hotels_pilot_agreement_draft.md": {
+      "issues": [],
+      "conflicts": ["OB-15"],
+      "noHighOutside": []
+    },
+    "2026-09-23_rheinwerk_analytics_services_agreement_draft.md": {
+      "issues": [
+        {"section": "6.3", "topic": "Warrants sole ownership of PipeKit (assigned to Northwind)", "min": "high"},
+        {"section": "6.2", "topic": "Perpetual, sub-licensable licence to PipeKit", "min": "medium"},
+        {"section": "14.1", "topic": "German law", "min": "medium"}
+      ],
+      "conflicts": ["OB-26"]
+    },
+    "2026-09-24_datavane_strategic_partnership_agreement_draft.md": {
+      "issues": [
+        {"section": "5.3", "topic": "Non-solicit / non-compete over Datavane Accounts, 24 months", "min": "high"},
+        {"section": "5.2", "topic": "Existing clients become Datavane Accounts", "min": "high"},
+        {"section": "6.1", "topic": "Datavane takes 80% incl. AtliQ services fees", "min": "high"},
+        {"section": "6.3", "topic": "Paid 60 days after the quarter, after Datavane is paid", "min": "high"},
+        {"section": "7.3", "topic": "No termination for convenience for AtliQ", "min": "high"},
+        {"section": "11.1", "topic": "Uncapped partner indemnity", "min": "high"},
+        {"section": "12.2", "topic": "Datavane's liability capped at $10k", "min": "high"},
+        {"section": "13.1", "topic": "Delaware law", "min": "medium"}
+      ],
+      "conflicts": ["OB-30"]
+    },
+    "2026-09-24_sunrise_foods_sow2_draft.md": {
+      "issues": [],
+      "conflicts": [],
+      "clean": true
+    },
+    "2026-09-25_finserve_capital_mutual_nda_draft.md": {
+      "issues": [
+        {"section": "1.2", "topic": "'Mutual' NDA protects only FinServe's information", "min": "high"},
+        {"section": "4.1", "topic": "One-way residuals", "min": "high"},
+        {"section": "8.1", "topic": "Non-compete against any Indian bank, NBFC or fintech", "min": "high"},
+        {"section": "8.2", "topic": "One-way 24-month non-solicit / no-hire", "min": "medium"},
+        {"section": "10.2", "topic": "One-way uncapped indemnity", "min": "high"},
+        {"section": "7.2", "topic": "Confidentiality in perpetuity", "min": "medium"},
+        {"section": "6.2", "topic": "Breach notice within 6 hours", "min": "medium"}
+      ],
+      "conflicts": ["client:Trustline NBFC", "client:PayTrack Technologies"]
+    },
+    "2026-09-26_kriti_data_labs_subcontractor_agreement_draft.md": {
+      "issues": [
+        {"section": "11.2", "topic": "2%/day uncapped LDs on a 12-person vendor", "min": "high"},
+        {"section": "10.3", "topic": "Vendor's liability unlimited, AtliQ's capped", "min": "high"},
+        {"section": "9.1", "topic": "Vendor indemnifies AtliQ's own negligence", "min": "high"},
+        {"section": "4.3", "topic": "Pay-when-paid, 120-day long-stop", "min": "high"},
+        {"section": "5.3", "topic": "No payment for work in progress", "min": "high"},
+        {"section": "7.2", "topic": "Vendor keeps the annotation outputs", "min": "high"},
+        {"section": "*", "topic": "Personal data with no DPA", "min": "high"},
+        {"section": "3.2", "topic": "Rejection with refund of all fees", "min": "medium"}
+      ],
+      "conflicts": []
+    },
+    "2026-09-27_daniel_ortiz_contractor_agreement_draft.md": {
+      "issues": [
+        {"section": "*", "topic": "No BAA / HIPAA flow-down for PHI work", "min": "high"},
+        {"section": "10.2", "topic": "Assignable to an Affiliate (offshore PHI risk)", "min": "medium"}
+      ],
+      "conflicts": ["OB-46"]
+    },
+    "2026-09-27_daniel_ortiz_nda_draft.md": {
+      "issues": [
+        {"section": "*", "topic": "NDA can't stand in for a subcontractor BAA", "min": "high"}
+      ],
+      "conflicts": []
+    },
+    "2026-09-27_loopmart_mutual_nda_draft.md": {
+      "issues": [],
+      "conflicts": [],
+      "clean": true
+    },
+    "2026-09-27_marcus_reed_contractor_agreement_draft.md": {
+      "issues": [
+        {"section": "Preamble", "topic": "India template (PAN, TDS, GST) for a US individual", "min": "high"},
+        {"section": "3.1", "topic": "Exclusivity — misclassification risk", "min": "high"},
+        {"section": "8.1", "topic": "Worldwide non-compete", "min": "high"},
+        {"section": "4.3", "topic": "60 days after discretionary approval", "min": "high"},
+        {"section": "9.1", "topic": "24-hour termination vs 60 days for contractor", "min": "medium"},
+        {"section": "10.2", "topic": "AtliQ capped, contractor uncapped", "min": "high"},
+        {"section": "6.1", "topic": "No carve-out for contractor's pre-existing tools", "min": "medium"}
+      ],
+      "conflicts": [],
+      "entityFail": true
+    }
+  }
+}

@@ -1,0 +1,23 @@
+[project]
+name = "atliq-api"
+version = "0.1.0"
+description = "AtliQ Contract Risk Analyzer — demo backend"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi>=0.115",
+  "uvicorn>=0.30",
+  "pydantic>=2.8",
+  "python-multipart>=0.0.9",
+  "pypdf>=5.0",
+  "python-docx>=1.1",
+  "anthropic>=0.60",
+]
+
+[dependency-groups]
+dev = ["pytest>=8", "httpx>=0.27"]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

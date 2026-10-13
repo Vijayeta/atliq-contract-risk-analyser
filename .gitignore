@@ -1,0 +1,27 @@
+# Documents and data are kept out of this repo for now (added separately)
+*.docx
+*.xlsx
+*.pptx
+*.mmd
+/*.md
+/Dataset/
+api/README.md
+web/README.md
+
+# Python
+.venv/
+__pycache__/
+.pytest_cache/
+
+# Local runtime data: database, uploaded contracts, logs
+api/atliq.db*
+api/uploads/
+*.log
+
+# Node / build output
+node_modules/
+dist/
+
+# Secrets
+.env
+.env.*
