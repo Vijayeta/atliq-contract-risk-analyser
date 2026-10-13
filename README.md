@@ -75,11 +75,23 @@ uv run python -m app.eval        # score the analyzer against the golden set (ev
 
 The golden set lists 66 expected issues and 11 cross-contract conflicts across 15 draft contracts. The rules engine scores 100% on it, but its rules were written on those same drafts, so expect lower accuracy on contracts it hasn't seen.
 
-> **Note:** the source dataset (`Dataset/`: contracts, tracker and notes) isn't in this repository yet. The app runs without it, from `api/seed/seed.json`. Tests that read the original contracts, and rebuilding the seed with `uv run python -m app.dataset`, need it added at `Dataset/` next to `api/`.
+To rebuild the pre-built reviews after changing the analyzer: `uv run python -m app.dataset --reset` (rewrites `seed/seed.json` from `Dataset/` and reloads the database, discarding uploads and decisions).
+
+## The dataset
+
+`Dataset/` is the capstone dataset everything is built from. "Today" is 28 Sep 2026, as the dataset instructs.
+
+- `incoming/`: 15 draft contracts waiting for review
+- `signed_contracts/`: 17 signed contracts; the obligation register is drawn from these
+- `contract_tracker.csv`: who asked for each contract, when it arrived and when it's due
+- `negotiation_notes.md`, `meeting_notes/`, `karandeep_contract_checklist.md`, `atliq_entities.md`: AtliQ's positions, past negotiations and entity rules
+
+To try an upload, use any file from `Dataset/incoming/` on **New review**.
 
 ## Project layout
 
 ```
+Dataset/                  Source contracts, tracker and notes (see above)
 api/                      FastAPI backend
   app/main.py             Routes; every access rule is enforced here
   app/access.py           Coverage, ready-to-sign gates, approver and delegation rules

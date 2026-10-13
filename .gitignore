@@ -1,11 +1,10 @@
-# Documents and data are kept out of this repo for now (added separately)
+# Project documents are kept out of this repo for now (added separately)
 *.docx
 *.xlsx
 *.pptx
 *.mmd
 /*.md
 !/README.md
-/Dataset/
 api/README.md
 web/README.md
 
@@ -22,6 +21,9 @@ api/uploads/
 # Node / build output
 node_modules/
 dist/
+
+# OS files
+.DS_Store
 
 # Secrets
 .env
