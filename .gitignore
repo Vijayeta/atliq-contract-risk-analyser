@@ -1,4 +1,4 @@
-# Project documents are kept out of this repo for now (added separately)
+# Working drafts and plans stay out of the repo; the shared Project Documents folder is included below
 *.docx
 *.xlsx
 *.pptx
@@ -7,6 +7,9 @@
 !/README.md
 api/README.md
 web/README.md
+# ...except the shared project documents
+!/Project Documents/
+!/Project Documents/**
 
 # Python
 .venv/
