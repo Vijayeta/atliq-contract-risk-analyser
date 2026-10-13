@@ -92,12 +92,47 @@ def _read_text(path: Path) -> str:
 
         return "\f".join((pg.extract_text() or "").strip() for pg in PdfReader(str(path)).pages)
     if ext == ".docx":
-        from docx import Document
-
-        return "\n".join(p.text for p in Document(str(path)).paragraphs)
+        return _docx_text(path)
     if ext in (".txt", ".md"):
         return decode_text(path.read_bytes())
     raise UnsupportedFile(f"{path.name}: only PDF, DOCX, Markdown and TXT are supported")
+
+
+def _docx_text(path: Path) -> str:
+    """Paragraphs and tables in document order. Heading styles become Markdown headings so the
+    segmenter sees the same structure as in the .md contracts: Title → '#', Heading N → '#' * (N+1)
+    (Heading 1 is usually a section, not the document title). Rate cards are often tables."""
+    from docx import Document
+    from docx.table import Table
+    from docx.text.paragraph import Paragraph
+
+    d = Document(str(path))
+    out: list[str] = []
+    seen_heading = False
+    for el in d.element.body.iterchildren():
+        tag = el.tag.rsplit("}", 1)[-1]
+        if tag == "p":
+            p = Paragraph(el, d)
+            style = (p.style.name if p.style is not None else "") or ""
+            m = re.match(r"heading (\d)", style, re.I)
+            # Many authors style the title as Heading 1: the first heading, if it names an agreement.
+            first_title = (m and m.group(1) == "1" and not seen_heading
+                           and re.search(r"agreement|contract|\bnda\b|statement of work|addendum|letter", p.text, re.I))
+            if m or style.lower() == "title":
+                seen_heading = True
+            if style.lower() == "title" or first_title:
+                prefix = "# "
+            elif m:
+                prefix = "#" * min(int(m.group(1)) + 1, 4) + " "
+            else:
+                prefix = ""
+            out.append(prefix + p.text if p.text.strip() else p.text)
+        elif tag == "tbl":
+            for row in Table(el, d).rows:
+                cells = [c.text.strip() for c in row.cells]
+                # Merged cells repeat their text in each grid cell; keep one copy.
+                out.append(" | ".join(c for i, c in enumerate(cells) if c and (i == 0 or c != cells[i - 1])))
+    return "\n".join(out)
 
 
 def decode_text(raw: bytes) -> str:
@@ -121,8 +156,8 @@ def parse_file(path: Path) -> list[Page]:
 
 def provenance(text: str) -> str | None:
     """The dataset's first line, e.g. '*(Client draft received 2026-09-10 via Dhaval's email…)*'."""
-    m = re.match(r"\s*\*\((.+?)\)\*", text)
-    return m.group(1).strip() if m else None
+    m = re.match(r"\s*\*\((.+?)\)\*", text, re.S)  # PDF extraction can wrap it over two lines
+    return " ".join(m.group(1).split()) if m else None
 
 
 def normalise(s: str) -> str:

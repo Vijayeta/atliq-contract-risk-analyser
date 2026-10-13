@@ -4,6 +4,7 @@
 *.pptx
 *.mmd
 /*.md
+!/README.md
 /Dataset/
 api/README.md
 web/README.md

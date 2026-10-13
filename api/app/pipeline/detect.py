@@ -92,10 +92,15 @@ def detect(text: str, provenance: str | None = None, hint: dict | None = None) -
     hint = hint or {}
     # Drop the dataset's provenance line ("*(Client draft received … AtliQ has not yet marked up)*")
     # and undo common OCR digit/letter swaps ("TECHN0LOGIES", "0RBIT") — for detection only.
-    text = re.sub(r"^\s*\*\(.+?\)\*\s*", "", text)
+    text = re.sub(r"^\s*\*\(.+?\)\*\s*", "", text, flags=re.S)  # may wrap over lines in PDFs
     text = re.sub(r"(?<=[A-Za-z])0(?=[A-Za-z])|\b0(?=[A-Z]{2})", "O", text)
     lines = [ln for ln in text.splitlines() if ln.strip()]
-    title_line = next((ln for ln in lines if ln.lstrip().startswith("# ")), lines[1] if len(lines) > 1 else "")
+    # Markdown title if there is one; otherwise (PDF, Word, plain text) the first short line near
+    # the top that names a document type, e.g. "MUTUAL NON-DISCLOSURE AGREEMENT".
+    title_line = next((ln for ln in lines if ln.lstrip().startswith("# ")), None) or next(
+        (ln for ln in lines[:6] if len(ln) <= 100 and any(re.search(pat, ln, re.I) for _, pat in DOC_TYPES)),
+        lines[1] if len(lines) > 1 else "",
+    )
     title = re.sub(r"[#*]", "", title_line).strip()
     head = "\n".join(lines[:60])
     full_l = text.lower()

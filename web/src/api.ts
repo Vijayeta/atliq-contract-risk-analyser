@@ -1,5 +1,5 @@
 // Typed client for the FastAPI backend in Project/api (proxied at /api by Vite).
-import type { AuditEntry, Contract, DataQualityIssue, Reliability, ContractStatus, Delegation, Finding, HumanDecision, Obligation, Precedent, Severity, UserId } from './data'
+import type { AuditEntry, Contract, DataQualityIssue, ContractStatus, Delegation, Finding, HumanDecision, Obligation, Precedent, Severity, UserId } from './data'
 import type { PendingPrecedent } from './hax'
 
 export interface Bootstrap {
@@ -13,7 +13,6 @@ export interface Bootstrap {
   ai: 'claude' | 'rules'
   asOf?: string
   dataQuality?: DataQualityIssue[]
-  reliability?: Reliability | null
 }
 
 export interface Job {

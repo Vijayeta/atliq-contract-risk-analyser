@@ -10,6 +10,19 @@ export const CURRENT_RULES = 'rules-v3.0'
 /** "Treat today as 2026-09-28" (Dataset/README.md). Used for time-left and expiry maths. */
 export const AS_OF_DATE = new Date(2026, 8, 28)
 
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+/** Parses dataset dates like "31 Mar 2027". Invalid for "Ongoing" or "-". */
+export function parseDay(s: string) {
+  const [d, m, y] = s.split(' ')
+  return new Date(Number(y), MONTHS.indexOf((m ?? '').slice(0, 3)), Number(d)) // "Sept" → "Sep"
+}
+
+/** Whole days from AS_OF_DATE to the given date (negative = past). NaN if it isn't a date. */
+export function daysFromToday(s: string) {
+  return Math.round((parseDay(s).getTime() - AS_OF_DATE.getTime()) / 86_400_000)
+}
+
 export interface EngineChange {
   version: string
   date: string
@@ -36,26 +49,6 @@ export const engineChangelog: EngineChange[] = [
 ]
 
 /* ----------------------------- G2 — how well it works ----------------------------- */
-
-export interface Measured {
-  ranAt: string
-  testSet: string
-  issueRecall: number
-  highRecall: number
-  conflictRecall: number
-  entityAccuracy: number
-  cleanCorrect: string
-  unexpectedHighFindings: number
-}
-
-/** Results of `uv run python -m app.eval` on the capstone drafts, loaded with the app data. */
-let measured: Measured | null = null
-export function setMeasured(m: Measured | null) {
-  measured = m
-}
-export function getMeasured() {
-  return measured
-}
 
 export function confidenceWord(v: number) {
   return v >= 0.85 ? 'High confidence' : v >= 0.6 ? 'Medium confidence' : 'Low confidence'

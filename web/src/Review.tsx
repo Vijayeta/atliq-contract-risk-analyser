@@ -63,8 +63,7 @@ import {
   sevDot,
   stateTone,
 } from './ui'
-import { CURRENT_RULES, DETECT_CONF, DRIVERS, engineChangelog, type Settings } from './hax'
-import { ReliabilityPopover } from './overlays'
+import { CURRENT_RULES, DETECT_CONF, DRIVERS, daysFromToday, engineChangelog, type Settings } from './hax'
 
 export type Tab = 'findings' | 'conflicts' | 'checks' | 'questions' | 'clauses' | 'activity'
 /** HAX actions and preferences passed down from App. */
@@ -256,22 +255,13 @@ export default function Review({
         <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-[26px] font-bold leading-tight tracking-[-0.02em] text-ink-900">{c.counterparty}</h1>
+              <h1 className="text-[22px] font-bold leading-tight tracking-[-0.02em] text-ink-900">{c.counterparty}</h1>
               {c.direction === 'outbound' && <Tag className="bg-brand-50 text-brand-700">AtliQ outbound draft</Tag>}
             </div>
-            <p className="mt-1 text-[14px] text-ink-600">
+            <p className="mt-0.5 text-[13px] text-ink-500">
               {c.name.split(' - ')[1]?.trim() ?? c.docType} · <span className="text-ink-400">{c.id}</span>
             </p>
-            <p className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[13px] text-ink-500">
-              <span>AtliQ as {c.atliqRole === 'NDA party' ? 'NDA party' : c.atliqRole.toLowerCase()}</span>
-              <span>{c.country}</span>
-              {c.value !== '-' && <span>{c.value}</span>}
-              <span>{c.pages} pages</span>
-              <span>{c.direction === 'inbound' ? `From ${c.receivedFrom}` : c.receivedFrom}</span>
-              <span>{c.received}</span>
-              {c.dealContext?.due && !closed && <span className="font-medium text-risk-med">Due {c.dealContext.due}</span>}
-              {c.dealContext?.requestedBy && <span>Requested by {c.dealContext.requestedBy}</span>}
-            </p>
+            <DealFacts c={c} closed={closed} />
             <DetectedDetails c={c} canEdit={(mayApprove || !!myRole) && !closed} hax={hax} />
           </div>
           <People c={c} user={user} approver={approver.user} delegatedUntil={approver.delegation?.expires} />
@@ -328,9 +318,8 @@ export default function Review({
               <span className="text-[12px] font-semibold uppercase tracking-[0.08em] text-ink-400">AI recommendation</span>
               <StatePill s={state} />
               {c.status !== 'Awaiting review' && <Tag className="bg-slate-100 text-ink-600">{c.status}</Tag>}
-              <ReliabilityPopover />
             </div>
-            <p className={`mt-2 text-[24px] font-semibold leading-tight tracking-[-0.01em] ${VERDICT_TONE[tone]}`}>
+            <p className={`mt-2 text-[30px] font-bold leading-tight tracking-[-0.02em] ${VERDICT_TONE[tone]}`}>
               {cov.below ? dispositionLabel['no-verdict'] : dispositionLabel[c.disposition]}
             </p>
             <p className="mt-3 max-w-[68ch] text-[15px] leading-[1.65] text-ink-700">{c.summary.replace(/^(Do not sign yet|Negotiable|No overall verdict)\.\s*/, '')}</p>
@@ -522,7 +511,61 @@ export default function Review({
 
 /* ---------------------------------------------------------------- */
 
-const DOC_TYPES: Contract['docType'][] = ['NDA', 'MSA', 'SOW', 'DPA', 'BAA', 'Partnership', 'Services', 'Subcontractor', 'Contractor', 'Pilot', 'Waiver']
+/* ---------------- header facts: labelled, so "USA" or "19 Sep 2026" needs no guessing ---------------- */
+
+function DealFacts({ c, closed }: { c: Contract; closed: boolean }) {
+  const due = c.dealContext?.due && !closed ? c.dealContext.due : null
+  return (
+    <dl className="mt-2 flex flex-wrap gap-x-5 gap-y-1.5">
+      <Fact label="AtliQ's role">{c.atliqRole === 'NDA party' ? 'NDA party' : c.atliqRole}</Fact>
+      <Fact label="Their country">{c.country}</Fact>
+      {c.value !== '-' && (
+        <Fact label="Deal value">
+          {c.value}
+          {c.highValue && (
+            <span className="ml-1.5 inline-flex" title="$100,000 or more: only Karandeep approves; routine delegations don't cover it">
+              <Tag className="bg-slate-100 text-ink-600">High value</Tag>
+            </span>
+          )}
+        </Fact>
+      )}
+      <Fact label="Length">
+        {c.pages} page{c.pages === 1 ? '' : 's'}
+      </Fact>
+      {c.received !== '-' && (
+        <Fact label="Received">
+          {c.received.split(',')[0]}
+        </Fact>
+      )}
+      {c.dealContext?.requestedBy && <Fact label="Requested by">{c.dealContext.requestedBy}</Fact>}
+      {due && (
+        <Fact label="Due">
+          {due}
+          <DueBadge days={daysFromToday(due)} />
+        </Fact>
+      )}
+    </dl>
+  )
+}
+
+function Fact({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-[10px] font-medium uppercase tracking-[0.06em] text-ink-400">{label}</dt>
+      <dd className="flex items-center text-[13px] text-ink-700">{children}</dd>
+    </div>
+  )
+}
+
+/** Days left against the dataset's "today", coloured by urgency: overdue or ≤3 days red, ≤7 amber. */
+function DueBadge({ days }: { days: number }) {
+  if (Number.isNaN(days)) return null
+  const text = days < 0 ? `${-days} day${days === -1 ? '' : 's'} overdue` : days === 0 ? 'today' : `in ${days} day${days === 1 ? '' : 's'}`
+  const tone = days <= 3 ? 'bg-risk-high-bg text-risk-high' : days <= 7 ? 'bg-risk-med-bg text-risk-med' : 'bg-slate-100 text-ink-600'
+  return <Tag className={`ml-1.5 ${tone}`}>{text}</Tag>
+}
+
+const DOC_TYPES: Contract['docType'][] =['NDA', 'MSA', 'SOW', 'DPA', 'BAA', 'Partnership', 'Services', 'Subcontractor', 'Contractor', 'Pilot', 'Waiver']
 const ROLES: Contract['atliqRole'][] = ['Supplier', 'Buyer', 'Partner', 'NDA party']
 // AtliQ contracts through these two entities only (Dataset/atliq_entities.md).
 const ENTITY_NAMES = ['AtliQ Technologies Pvt Ltd', 'AtliQ Inc']
@@ -584,11 +627,11 @@ function DetectedDetails({ c, canEdit, hax }: { c: Contract; canEdit: boolean; h
     )
   return (
     <div
-      className={`mt-3 inline-flex max-w-full flex-wrap items-center gap-x-2 gap-y-1 rounded-lg px-3 py-1.5 text-[13px] ${
+      className={`mt-2 inline-flex max-w-full flex-wrap items-center gap-x-1.5 gap-y-0.5 rounded-md px-2 py-0.5 text-[12px] ${
         unsure ? 'bg-risk-med-bg text-ink-800' : 'bg-white text-ink-600 ring-1 ring-slate-200/80'
       }`}
     >
-      <Sparkles size={14} className={unsure ? 'text-risk-med' : 'text-ink-400'} />
+      <Sparkles size={12} className={unsure ? 'text-risk-med' : 'text-ink-400'} />
       <span>{checked ? `${checked.corrected ? 'Corrected' : 'Confirmed'} by ${users[checked.by].name}:` : 'Detected by AI:'}</span>
       <span className="font-medium text-ink-900">
         {c.docType} · AtliQ as {c.atliqRole === 'NDA party' ? 'NDA party' : c.atliqRole.toLowerCase()}
@@ -1536,7 +1579,7 @@ function Clauses({ c, onFinding }: { c: Contract; onFinding: (section: string) =
 function Activity({ c, audit }: { c: Contract; audit: AuditEntry[] }) {
   const mine = audit.filter((a) => a.detail.includes(c.id))
   return (
-    <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
       <Card title="History" subtitle="Every AI output, retrieval and human decision on this contract">
         {mine.length === 0 ? (
           <p className="text-[14px] text-ink-500">No activity recorded yet.</p>

@@ -343,18 +343,6 @@ export interface DataQualityIssue {
   rows: string[]
 }
 
-/** Measured eval results (api/eval/results.json). */
-export interface Reliability {
-  ranAt: string
-  testSet: string
-  issueRecall: number
-  highRecall: number
-  conflictRecall: number
-  entityAccuracy: number
-  cleanCorrect: string
-  unexpectedHighFindings: number
-}
-
 export type AuditKind = 'ai' | 'human' | 'system' | 'retrieval' | 'delegation'
 
 export interface AuditEntry {

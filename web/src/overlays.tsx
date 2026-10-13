@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { X, Check, Minus, Bell, Info, Keyboard } from 'lucide-react'
+import { X, Check, Minus, Bell, Keyboard } from 'lucide-react'
 import { Button } from './ui'
-import { getMeasured, type AppNotification } from './hax'
+import type { AppNotification } from './hax'
 
 /* ----------------------------- Modal base ----------------------------- */
 
@@ -204,40 +204,6 @@ export function Capabilities({ compact }: { compact?: boolean }) {
   )
 }
 
-export function ReliabilityFacts() {
-  const m = getMeasured()
-  if (!m)
-    return (
-      <p className="text-[13px] leading-relaxed text-ink-600">
-        Not measured yet. Run <code className="rounded bg-slate-100 px-1">uv run python -m app.eval</code> in Project/api to score the
-        analyzer against the capstone golden set. It can miss things, so a person reviews every high-severity finding before signing.
-      </p>
-    )
-  const pct = (v: number) => `${Math.round(v * 100)}%`
-  const rows: [string, string][] = [
-    [pct(m.highRecall), 'of known high-severity issues caught'],
-    [pct(m.conflictRecall), 'of cross-contract conflicts caught'],
-    [pct(m.entityAccuracy), 'correct on the legal-entity rule'],
-    [m.cleanCorrect, 'clean drafts left clean (no false alarm)'],
-  ]
-  return (
-    <div>
-      <dl className="grid grid-cols-2 gap-3">
-        {rows.map(([v, l]) => (
-          <div key={l} className="rounded-lg bg-slate-50 px-3 py-2.5">
-            <dt className="text-[18px] font-semibold tabular-nums text-ink-900">{v}</dt>
-            <dd className="text-[12px] leading-snug text-ink-500">{l}</dd>
-          </div>
-        ))}
-      </dl>
-      <p className="mt-3 text-[12px] leading-relaxed text-ink-400">
-        Measured {m.ranAt} on {m.testSet}. The rules were tuned on these same drafts, so expect lower accuracy on contracts
-        it hasn't seen. Every quote is checked against the source. A person reviews every high-severity finding before signing.
-      </p>
-    </div>
-  )
-}
-
 export function AboutDialog({ open, onClose, onShortcuts }: { open: boolean; onClose: () => void; onShortcuts: () => void }) {
   return (
     <Modal
@@ -262,10 +228,6 @@ export function AboutDialog({ open, onClose, onShortcuts }: { open: boolean; onC
       </p>
       <div className="mt-5">
         <Capabilities />
-      </div>
-      <p className="mt-6 text-[13px] font-semibold text-ink-900">How reliable is it?</p>
-      <div className="mt-2">
-        <ReliabilityFacts />
       </div>
     </Modal>
   )
@@ -315,28 +277,6 @@ export function usePopover() {
     }
   }, [open])
   return { open, setOpen, ref }
-}
-
-/* ----------------------------- G2 — reliability popover ----------------------------- */
-
-export function ReliabilityPopover() {
-  const p = usePopover()
-  return (
-    <div ref={p.ref} className="relative">
-      <button
-        onClick={() => p.setOpen((v) => !v)}
-        aria-expanded={p.open}
-        className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[12px] font-medium text-brand-600 hover:bg-brand-50"
-      >
-        <Info size={13} /> How reliable is this?
-      </button>
-      {p.open && (
-        <div className="animate-fade-in absolute left-0 z-30 mt-2 w-[min(88vw,380px)] rounded-xl border border-slate-200 bg-white p-4 shadow-xl shadow-ink-900/10">
-          <ReliabilityFacts />
-        </div>
-      )}
-    </div>
-  )
 }
 
 /* ----------------------------- G3 / G18 — notifications ----------------------------- */

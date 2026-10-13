@@ -22,7 +22,6 @@ import {
 import { Sidebar, Topbar, type View } from './shell'
 import { Banner, Button, Card, EmptyState } from './ui'
 import { api, setApiUser, waitForJob } from './api'
-import { setMeasured } from './hax'
 
 interface OfflineSeed {
   asOf: string
@@ -162,7 +161,6 @@ export default function App() {
       setAi(b.ai)
       if (b.asOf) setAsOf(b.asOf)
       setDataQuality(b.dataQuality ?? [])
-      setMeasured(b.reliability ?? null)
       setOnline(true)
     } catch {
       // Offline: load the same dataset the API serves (copied to src/seed.json), lazily so it

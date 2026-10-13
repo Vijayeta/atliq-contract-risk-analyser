@@ -485,7 +485,7 @@ export function Team({
     <div className="space-y-8">
       <PageHeader title="Team & delegation" subtitle="KD sees everything and signs. Everyone else sees only the contracts they're assigned to." />
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
         <Card title="Delegations" subtitle="Approval rights handed over while KD is away. Signature always stays with KD.">
           {activeD.length === 0 ? (
             <p className="text-[14px] text-ink-500">No active delegations. Every approval waits for KD.</p>

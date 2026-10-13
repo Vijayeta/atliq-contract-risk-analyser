@@ -109,8 +109,12 @@ def segment(pages: list[Page]) -> list[Clause]:
                 continue
             md = MD_HEADING.match(raw)
             plain = PLAIN_HEADING.match(line) if not md else None
-            if md or plain:
-                parsed = _heading(md.group(1)) if md else (plain.group(1), _title_case(plain.group(2)))
+            # PDF / Word / plain text lose the "##": an all-caps "EXHIBIT A — RATE CARD" or
+            # "ARTICLE 11 — DELAY" line is still a heading. References in sentences aren't all caps.
+            caps = (not md and not plain and len(line) <= 100 and line == line.upper() and any(c.isalpha() for c in line)
+                    and (ANNEX.match(line) or ARTICLE.match(line)))
+            if md or plain or caps:
+                parsed = _heading(md.group(1)) if md else (plain.group(1), _title_case(plain.group(2))) if plain else _heading(line)
                 if raw.lstrip().startswith("# ") and not raw.lstrip().startswith("##"):
                     continue  # H1 = document title
                 if parsed is None:

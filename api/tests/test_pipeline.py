@@ -101,3 +101,46 @@ def test_claude_section_labels_resolve_to_real_clauses():
     assert resolve_section("4.12", known) == "4.12"  # not swallowed by "4.1"
     assert resolve_section("sch a", known) == "Sch A"
     assert resolve_section("Annex Z", known) == "Annex Z"  # unknown labels pass through unchanged
+
+
+def test_docx_keeps_headings_and_tables(tmp_path):
+    from docx import Document
+
+    from app.pipeline.parse import read_text
+
+    d = Document()
+    d.add_heading("MASTER SERVICES AGREEMENT", level=1)  # title styled as Heading 1
+    d.add_heading("1. FEES", level=1)
+    d.add_paragraph("1.1 Fees. Client shall pay the fees in the Rate Card.")
+    t = d.add_table(rows=2, cols=2)
+    t.cell(0, 0).text, t.cell(0, 1).text = "Role", "Rate"
+    t.cell(1, 0).text, t.cell(1, 1).text = "Senior data engineer", "$72/hr"
+    p = tmp_path / "msa.docx"
+    d.save(p)
+    text = read_text(p)
+    assert text.splitlines()[0] == "# MASTER SERVICES AGREEMENT"
+    assert "## 1. FEES" in text
+    assert "Senior data engineer | $72/hr" in text  # tables used to be dropped
+
+
+def test_plain_text_exhibit_headings_are_sections():
+    from app.pipeline.parse import Page
+    from app.pipeline.segment import segment
+
+    text = ("14. MISCELLANEOUS\n14.7 Notices. Notices go to the addresses above.\n"
+            "EXHIBIT A — RATE CARD\nSenior data engineer: USD 72 per hour, fixed for the term of the agreement.\n"
+            "The rates are set out in Exhibit A and apply to every SOW.\n")
+    sections = [c.section for c in segment([Page(1, text)])]
+    assert sections == ["14.7", "Ex A"]  # the sentence mentioning Exhibit A stays body text
+
+
+def test_title_and_provenance_without_markdown():
+    from app.pipeline.detect import detect
+    from app.pipeline.parse import provenance
+
+    text = ("*(Client draft received 2026-09-25 via Karandeep's email. Not yet\nsigned by AtliQ.)*\n"
+            "MUTUAL NON-DISCLOSURE AGREEMENT\nRef: FSC/LGL/MNDA/2026/118\n"
+            "This Mutual Non-Disclosure Agreement is made between the parties. Any waiver must be in writing.\n")
+    assert provenance(text) == "Client draft received 2026-09-25 via Karandeep's email. Not yet signed by AtliQ."
+    det = detect(text)
+    assert det.doc_type == "NDA" and det.title == "MUTUAL NON-DISCLOSURE AGREEMENT"

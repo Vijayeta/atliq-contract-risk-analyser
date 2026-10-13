@@ -10,7 +10,7 @@ import {
   type UserId,
 } from './data'
 import { Avatar, Button, EmptyState, StatePill, Tag } from './ui'
-import { AS_OF_DATE } from './hax'
+import { AS_OF_DATE, parseDay } from './hax'
 
 export default function Overview({
   data,
@@ -69,7 +69,7 @@ export default function Overview({
         <Count label="Signing blocked" value={blocked.length} alert onClick={onAll} />
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
         <section>
           <div className="mb-3 flex items-end justify-between">
             <h2 className="text-[16px] font-semibold text-ink-900">Needs attention</h2>
@@ -144,15 +144,9 @@ function Count({ label, value, alert, onClick }: { label: string; value: number;
 
 /* ---------------- Restrictions lifting soon ---------------- */
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 const DAY = 86_400_000
 const TODAY = AS_OF_DATE // the dataset's "today" (28 Sep 2026)
-
-/** Parses register dates like "31 Mar 2027". */
-function parseDate(s: string) {
-  const [d, m, y] = s.split(' ')
-  return new Date(Number(y), MONTHS.indexOf(m), Number(d))
-}
+const parseDate = parseDay
 
 function timeLeft(days: number) {
   if (days < 1) return 'Lifts today'
