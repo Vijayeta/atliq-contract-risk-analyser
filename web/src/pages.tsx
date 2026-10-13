@@ -49,9 +49,7 @@ export function Queue({
   onOpen,
   filter,
   setFilter,
-  asOf,
 }: {
-  asOf: string
   filter: QueueFilter
   setFilter: (f: QueueFilter) => void
   data: Contract[]
@@ -78,7 +76,7 @@ export function Queue({
     <div className="space-y-6">
       <PageHeader
         title="Contract reviews"
-        subtitle={`Client and partner contracts, plus AtliQ's own drafts. Imported from the capstone dataset · as of ${asOf}.`}
+        subtitle="Client and partner contracts, plus AtliQ's own drafts."
       />
 
       <div className="flex flex-wrap items-center justify-between gap-3">

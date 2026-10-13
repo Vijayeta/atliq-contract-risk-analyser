@@ -35,9 +35,9 @@ export const engineChangelog: EngineChange[] = [
   {
     version: 'rules-v3.0',
     date: '28 Sep 2026',
-    title: 'Rebuilt on the capstone dataset',
-    detail: "Two legal entities only (Pvt Ltd for non-US clients, Inc for US clients, per atliq_entities.md); Karandeep's checklist positions; conflict checks against a register built from the 17 signed contracts.",
-    affects: 'All reviews were regenerated from Project/Dataset.',
+    title: 'Entity rules, checklist and obligation register',
+    detail: "Two legal entities only (Pvt Ltd for non-US clients, Inc for US clients); Karandeep's checklist positions; conflict checks against a register built from the 17 signed contracts.",
+    affects: 'All existing reviews were regenerated with these rules.',
   },
   {
     version: 'p-2026.10.08',
@@ -99,7 +99,7 @@ export interface AppNotification {
 }
 
 export const seedNotifications: AppNotification[] = [
-  { id: 'N-1', kind: 'engine', title: 'Reviews rebuilt from the capstone dataset', detail: '15 drafts, 17 signed contracts, obligation register', at: '28 Sep, 09:00', to: '#/register', for: 'all' },
+  { id: 'N-1', kind: 'engine', title: 'Reviews updated with new rules', detail: '15 drafts re-checked; obligation register built from 17 signed contracts', at: '28 Sep, 09:00', to: '#/register', for: 'all' },
   { id: 'N-2', kind: 'ready', title: 'Harrington Health MSA + BAA, due 1 Oct', detail: 'Dhaval · $210k · signed NDA forbids PHI before a BAA', at: '28 Sep, 09:00', to: '#/review/C-023', for: ['kd', 'dhaval'] },
   { id: 'N-3', kind: 'ready', title: 'FinServe "mutual" NDA, wanted before 1 Oct', detail: 'One-way terms and a non-compete covering Trustline and PayTrack', at: '28 Sep, 09:00', to: '#/review/C-036', for: ['kd'] },
   { id: 'N-4', kind: 'ready', title: 'Lakeshore Grocers, due 3 Oct', detail: "Rate card triggers Crestline's best-price promise", at: '28 Sep, 09:00', to: '#/review/C-026', for: ['kd', 'jay'] },

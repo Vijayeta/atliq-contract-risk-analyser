@@ -144,7 +144,6 @@ export default function App() {
   const [serverHidden, setServerHidden] = useState(0)
   const [obligations, setObligations] = useState<Obligation[]>([])
   const [precedents, setPrecedents] = useState<Precedent[]>([])
-  const [asOf, setAsOf] = useState('28 Sep 2026')
   const [dataQuality, setDataQuality] = useState<DataQualityIssue[]>([])
 
   const load = useCallback(async (u: UserId) => {
@@ -159,7 +158,6 @@ export default function App() {
       setPending(b.pending)
       setServerHidden(b.hidden)
       setAi(b.ai)
-      if (b.asOf) setAsOf(b.asOf)
       setDataQuality(b.dataQuality ?? [])
       setOnline(true)
     } catch {
@@ -171,7 +169,6 @@ export default function App() {
       setAudit(seed.audit)
       setObligations(seed.obligations)
       setPrecedents(seed.precedents)
-      setAsOf(seed.asOf)
       setDataQuality(seed.dataQuality)
       setOnline(false)
     }
@@ -694,7 +691,6 @@ export default function App() {
               query={query}
               clearQuery={() => setQuery('')}
               onOpen={open}
-              asOf={asOf}
               filter={prefs.queueFilter}
               setFilter={(f) => setPrefs((p) => ({ ...p, queueFilter: f }))}
             />
