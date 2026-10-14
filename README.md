@@ -5,7 +5,7 @@
 > **The full app is hosted, on three free services:** the web app on Vercel, the API on Render, and the data on Supabase. Uploads, reviews and decisions are saved. Things to know:
 > - **The API sleeps when idle.** The first visit after a quiet spell can take about a minute while Render wakes it up; the app says so and offers Retry.
 > - **The API isn't on Vercel** because it needs a lasting database and long-running review jobs, and Vercel runs Python as short-lived functions (the database would be wiped, reviews cut off, uploads capped at 4.5 MB).
-> - **Claude is off in the hosted version.** Reviews use the free rules engine; Claude is paid per contract, so it's only worth adding with a spend limit set. Run the app locally to try Claude ([Quick start](#quick-start)).
+> - **Claude is on in the hosted version** (Claude Haiku 5.5 alongside the rules engine), with a monthly spend limit on the API key. A review with Claude takes about a minute. If the limit is reached, reviews fall back to the free rules engine until the next month.
 > - **Anyone with the link can use it.** There's no real sign-in; "Viewing as" picks the user. Sample data can be restored with a reset (see [Configuration](#configuration)).
 
 A contract review assistant for AtliQ Technologies. Upload a contract and it reads every clause, flags risk with the exact quote behind each finding, checks the AtliQ legal entity, and catches clashes with promises AtliQ has already signed (non-competes, best-price clauses, exclusivity). People make every decision; the app never signs, approves or sends anything.
