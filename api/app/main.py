@@ -19,6 +19,7 @@ from typing import Annotated, Literal
 
 from fastapi import BackgroundTasks, Depends, FastAPI, File, Form, Header, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from pydantic import BaseModel, StringConstraints, model_validator
 
 from . import db
@@ -37,13 +38,16 @@ log = logging.getLogger("atliq")
 async def lifespan(_: FastAPI):
     db.ensure()
     log.info("AI analyzer: %s", f"Claude ({llm_engine.MODEL})" if llm_engine.enabled() else "rules engine only (no ANTHROPIC_API_KEY)")
+    log.info("Database: %s", "Postgres (DATABASE_URL)" if db.DATABASE_URL else f"SQLite ({db.DB_PATH.name})")
     yield
+    db.close_pool()
 
 
 app = FastAPI(title="AtliQ Contract Risk Analyzer API", version="0.1.0", lifespan=lifespan)
 # Local Vite dev server, plus the hosted web app's addresses (comma-separated in ATLIQ_CORS_ORIGINS).
 CORS_ORIGINS = ["http://localhost:5173", *[o.strip() for o in os.environ.get("ATLIQ_CORS_ORIGINS", "").split(",") if o.strip()]]
 app.add_middleware(CORSMiddleware, allow_origins=CORS_ORIGINS, allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(GZipMiddleware, minimum_size=1000)  # the bootstrap payload is ~1 MB of JSON
 
 MAX_BYTES = 25 * 1024 * 1024
 Severity = Literal["high", "medium", "low", "unknown"]

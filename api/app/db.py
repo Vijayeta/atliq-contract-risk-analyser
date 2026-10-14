@@ -9,6 +9,7 @@ Uploaded files are kept in the database too, so re-runs work after the server re
 """
 from __future__ import annotations
 
+import atexit
 import json
 import math
 import os
@@ -99,8 +100,8 @@ class _Cursor:
 class Conn:
     """The few calls the app makes, the same on SQLite and Postgres (SQL is written with `?`)."""
 
-    def __init__(self, raw, pg: bool):
-        self.raw, self.pg = raw, pg
+    def __init__(self, raw, pg: bool, release=None):
+        self.raw, self.pg, self._release = raw, pg, release
 
     def execute(self, sql: str, params: tuple | list = ()) -> _Cursor:
         if self.pg:
@@ -114,16 +115,44 @@ class Conn:
         self.raw.commit()
 
     def close(self) -> None:
-        self.raw.close()
+        if self._release:
+            self.raw.rollback()  # end the read transaction (writes are already committed) before reuse
+            self._release(self.raw)
+        else:
+            self.raw.close()
+
+
+_pool = None
+_pool_lock = threading.Lock()
+
+
+def _pg_pool():
+    """A few kept-open connections: opening a TLS connection to Supabase costs several round trips."""
+    global _pool
+    with _pool_lock:
+        if _pool is None:
+            from psycopg_pool import ConnectionPool  # only needed for the hosted API
+
+            # prepare_threshold=None: Supabase's connection pooler can't use prepared statements.
+            _pool = ConnectionPool(DATABASE_URL, min_size=1, max_size=5, open=True, check=ConnectionPool.check_connection,
+                                   kwargs={"prepare_threshold": None, "connect_timeout": 15})
+            atexit.register(close_pool)
+        return _pool
+
+
+def close_pool() -> None:
+    global _pool
+    with _pool_lock:
+        if _pool is not None:
+            _pool.close()
+            _pool = None
 
 
 def connect(sqlite_path: Path | None = None) -> Conn:
     """Postgres when DATABASE_URL is set (unless a SQLite file is asked for), otherwise SQLite."""
     if DATABASE_URL and sqlite_path is None:
-        import psycopg  # only needed for the hosted API
-
-        # prepare_threshold=None: Supabase's connection pooler can't use prepared statements.
-        return Conn(psycopg.connect(DATABASE_URL, prepare_threshold=None, connect_timeout=15), pg=True)
+        pool = _pg_pool()
+        return Conn(pool.getconn(), pg=True, release=pool.putconn)
     raw = sqlite3.connect(sqlite_path or DB_PATH, check_same_thread=False, timeout=10)
     raw.row_factory = sqlite3.Row
     raw.execute("PRAGMA journal_mode=WAL")

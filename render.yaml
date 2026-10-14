@@ -5,6 +5,7 @@ services:
     name: atliq-api
     runtime: python
     plan: free
+    region: singapore            # closest Render region to the Supabase project (Seoul, ap-northeast-2)
     rootDir: api
     buildCommand: pip install uv && uv sync --frozen --no-dev
     startCommand: uv run --frozen --no-dev uvicorn app.main:app --host 0.0.0.0 --port $PORT
