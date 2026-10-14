@@ -124,7 +124,7 @@ To try an upload, use any file from `Dataset/incoming/` on **New review**.
 
 ```
 Dataset/                  Source contracts, tracker and notes (see above)
-Project Documents/        PRD, AI opportunity map, user research and project deck
+Project Documents/        PRD, AI opportunity map, user research, cost estimate and project deck
 render.yaml               Render Blueprint for hosting the API
 api/                      FastAPI backend
   app/main.py             Routes; every access rule is enforced here
