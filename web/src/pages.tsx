@@ -10,6 +10,7 @@ import {
   type AuditKind,
   type Contract,
   type DataQualityIssue,
+  delegationActive,
   type Delegation,
   type Obligation,
   type ObligationStatus,
@@ -477,8 +478,8 @@ export function Team({
   const [expires, setExpires] = useState(() => isoDay(new Date(Date.now() + 14 * 86_400_000)))
   const [range] = useState(() => ({ min: isoDay(new Date()), max: isoDay(new Date(Date.now() + 365 * 86_400_000)) }))
   const open = data.filter((c) => !['Signed', 'Rejected'].includes(c.status))
-  const activeD = delegations.filter((d) => d.active)
-  const past = delegations.filter((d) => !d.active)
+  const activeD = delegations.filter((d) => delegationActive(d))
+  const past = delegations.filter((d) => !delegationActive(d))
 
   return (
     <div className="space-y-8">
@@ -512,7 +513,7 @@ export function Team({
           )}
           {past.length > 0 && (
             <p className="mt-4 text-[13px] text-ink-400">
-              {past.length} revoked: {past.map((d) => `${d.id} (${users[d.to].name})`).join(', ')}
+              Ended: {past.map((d) => `${d.id} (${users[d.to].name}, ${d.active ? `expired ${d.expires}` : 'revoked'})`).join(', ')}
             </p>
           )}
         </Card>

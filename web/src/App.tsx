@@ -23,6 +23,9 @@ import { Sidebar, Topbar, type View } from './shell'
 import { Banner, Button, Card, EmptyState } from './ui'
 import { api, setApiUser, waitForJob } from './api'
 
+/** Set at build time for the hosted web-only demo (vercel.json): no review server, sample data only. */
+const HOSTED_DEMO = import.meta.env.VITE_HOSTED_DEMO === '1'
+
 interface OfflineSeed {
   asOf: string
   contracts: Contract[]
@@ -149,6 +152,7 @@ export default function App() {
   const load = useCallback(async (u: UserId) => {
     setApiUser(u)
     try {
+      if (HOSTED_DEMO) throw new Error('hosted demo: no review server')
       const b = await api.bootstrap()
       setData(b.contracts)
       setDelegations(b.delegations)
@@ -655,18 +659,25 @@ export default function App() {
         <main className="mx-auto w-full max-w-[1280px] px-4 py-8 sm:px-8">
           {online === false && (
             <div className="mb-6">
-              <Banner
-                tone="warn"
-                title="Offline demo: the review server isn't running"
-                action={
-                  <Button size="sm" onClick={() => load(user)}>
-                    Retry
-                  </Button>
-                }
-              >
-                You're seeing sample data and changes won't be saved. Start it with <code className="rounded bg-white/70 px-1">uv run uvicorn app.main:app --port 8000</code> in
-                Project/api.
-              </Banner>
+              {HOSTED_DEMO ? (
+                <Banner tone="info" title="Demo version with sample contracts">
+                  This hosted demo runs in your browser on the capstone sample data. You can explore every review and try the
+                  workflow, but changes aren't saved and no new AI review runs.
+                </Banner>
+              ) : (
+                <Banner
+                  tone="warn"
+                  title="Offline demo: the review server isn't running"
+                  action={
+                    <Button size="sm" onClick={() => load(user)}>
+                      Retry
+                    </Button>
+                  }
+                >
+                  You're seeing sample data and changes won't be saved. Start it with <code className="rounded bg-white/70 px-1">uv run uvicorn app.main:app --port 8000</code> in
+                  Project/api.
+                </Banner>
+              )}
             </div>
           )}
           {view === 'overview' && (

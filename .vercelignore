@@ -1,0 +1,5 @@
+# Vercel hosts only the web app (web/). Keep the Python API out of the upload: Vercel would
+# otherwise turn the top-level api/ folder into serverless functions.
+api/
+Dataset/
+Project Documents/

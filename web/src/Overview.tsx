@@ -5,6 +5,7 @@ import {
   coverage,
   users,
   type Contract,
+  delegationActive,
   type Delegation,
   type Obligation,
   type UserId,
@@ -38,7 +39,7 @@ export default function Overview({
   const toReview = active.filter((c) => c.primary === user || c.secondary === user)
   const blocked = active.filter((c) => blockReasons(c).length > 0)
   const attention = active.slice().sort((a, b) => blockReasons(b).length - blockReasons(a).length)
-  const myDelegations = delegations.filter((d) => d.active && (user === 'kd' || d.to === user))
+  const myDelegations = delegations.filter((d) => delegationActive(d) && (user === 'kd' || d.to === user))
 
   const hour = new Date().getHours()
   const greet = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'

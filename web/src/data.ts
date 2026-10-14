@@ -425,10 +425,23 @@ export function visibleTo(c: Contract, u: UserId) {
   return users[u].superAdmin || c.access.includes(u)
 }
 
+const DELEGATION_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+/** Same rule as the server (api/app/access.py delegation_active): not revoked, and today is on or
+ *  before the expiry date ("05 Sep 2027"). An unreadable date counts as ended, never open-ended. */
+export function delegationActive(d: Delegation, today: Date = new Date()) {
+  if (!d.active) return false
+  const [day, mon, year] = d.expires.split(' ')
+  const m = DELEGATION_MONTHS.indexOf((mon ?? '').slice(0, 3))
+  const end = new Date(Number(year), m, Number(day))
+  if (m < 0 || Number.isNaN(end.getTime())) return false
+  return end >= new Date(today.getFullYear(), today.getMonth(), today.getDate())
+}
+
 export function delegationFor(c: Contract, u: UserId, ds: Delegation[]) {
   return ds.find(
     (d) =>
-      d.active && d.to === u && (d.scope === 'all-routine' ? !c.highValue && c.access.includes(u) : d.scope.includes(c.id)),
+      delegationActive(d) && d.to === u && (d.scope === 'all-routine' ? !c.highValue && c.access.includes(u) : d.scope.includes(c.id)),
   )
 }
 
