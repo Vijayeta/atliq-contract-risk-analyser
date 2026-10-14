@@ -31,3 +31,5 @@ dist/
 # Secrets
 .env
 .env.*
+# ...except the web app's public API address (not a secret)
+!web/.env.production

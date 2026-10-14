@@ -25,6 +25,8 @@ import { api, setApiUser, waitForJob } from './api'
 
 /** Set at build time for the hosted web-only demo (vercel.json): no review server, sample data only. */
 const HOSTED_DEMO = import.meta.env.VITE_HOSTED_DEMO === '1'
+/** Built to call a hosted API (VITE_API_URL), e.g. on Render's free plan, which sleeps when idle. */
+const HOSTED_API = Boolean(import.meta.env.VITE_API_URL)
 
 interface OfflineSeed {
   asOf: string
@@ -667,15 +669,21 @@ export default function App() {
               ) : (
                 <Banner
                   tone="warn"
-                  title="Offline demo: the review server isn't running"
+                  title={HOSTED_API ? 'The review server is waking up' : "Offline demo: the review server isn't running"}
                   action={
                     <Button size="sm" onClick={() => load(user)}>
                       Retry
                     </Button>
                   }
                 >
-                  You're seeing sample data and changes won't be saved. Start it with <code className="rounded bg-white/70 px-1">uv run uvicorn app.main:app --port 8000</code> in
-                  Project/api.
+                  {HOSTED_API ? (
+                    <>It sleeps when nobody has used it for a while and takes about a minute to start. Meanwhile you're seeing sample data and changes won't be saved. Try again in a minute.</>
+                  ) : (
+                    <>
+                      You're seeing sample data and changes won't be saved. Start it with <code className="rounded bg-white/70 px-1">uv run uvicorn app.main:app --port 8000</code> in
+                      Project/api.
+                    </>
+                  )}
                 </Banner>
               )}
             </div>

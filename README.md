@@ -1,12 +1,12 @@
 # AtliQ Contract Risk Analyzer
 
-**Live demo: [atliq-contract-risk-analyser-botd.vercel.app](https://atliq-contract-risk-analyser-botd.vercel.app/)**
+**Live app: [atliq-contract-risk-analyser-botd.vercel.app](https://atliq-contract-risk-analyser-botd.vercel.app/)** · API: [atliq-api.onrender.com](https://atliq-api.onrender.com/api/health)
 
-> **Only the web app is hosted; the API is not.** The live demo runs in your browser on the sample contracts, so you can explore every review, but changes aren't saved and no new review runs. The API isn't on Vercel because:
-> - **It needs a lasting database and long-running jobs.** Vercel runs Python as short-lived functions, so the database would be wiped regularly, a review running after an upload would be cut off, and uploads would be capped at 4.5 MB.
-> - **Claude reviews cost money per contract.** A public API puts the Anthropic API key behind an open upload form, so a spend limit has to be in place first.
->
-> The repo is ready to host the full app for free instead: web app on Vercel, API on Render, data on Supabase. See [Hosting the full app](#hosting-the-full-app). Until then, run it locally to try uploads and Claude reviews ([Quick start](#quick-start)).
+> **The full app is hosted, on three free services:** the web app on Vercel, the API on Render, and the data on Supabase. Uploads, reviews and decisions are saved. Things to know:
+> - **The API sleeps when idle.** The first visit after a quiet spell can take about a minute while Render wakes it up; the app says so and offers Retry.
+> - **The API isn't on Vercel** because it needs a lasting database and long-running review jobs, and Vercel runs Python as short-lived functions (the database would be wiped, reviews cut off, uploads capped at 4.5 MB).
+> - **Claude is off in the hosted version.** Reviews use the free rules engine; Claude is paid per contract, so it's only worth adding with a spend limit set. Run the app locally to try Claude ([Quick start](#quick-start)).
+> - **Anyone with the link can use it.** There's no real sign-in; "Viewing as" picks the user. Sample data can be restored with a reset (see [Configuration](#configuration)).
 
 A contract review assistant for AtliQ Technologies. Upload a contract and it reads every clause, flags risk with the exact quote behind each finding, checks the AtliQ legal entity, and catches clashes with promises AtliQ has already signed (non-competes, best-price clauses, exclusivity). People make every decision; the app never signs, approves or sends anything.
 
@@ -80,7 +80,7 @@ To reset the demo data: `curl -X POST -H "X-User: kd" localhost:8000/api/admin/r
 
 The live demo is the `web/` folder deployed on Vercel (imported as a single project, Vite preset). Every push to `main` redeploys it. `.vercelignore` keeps `api/` out of the upload, so Vercel doesn't turn the Python files into serverless functions.
 
-Vercel sets `VERCEL=1` during builds. Without `VITE_API_URL`, `web/vite.config.ts` then builds the hosted demo: no calls to an API, sample data only, and a banner saying so. With `VITE_API_URL` set, the web app talks to that API.
+Vercel sets `VERCEL=1` during builds. The web app calls the API named by `VITE_API_URL`, set in `web/.env.production`. Without an API address, `web/vite.config.ts` builds a sample-data-only demo instead, with a banner saying so.
 
 ### Hosting the full app
 
@@ -89,7 +89,7 @@ Web app on Vercel, API on Render, data on Supabase, all on free plans.
 1. **Supabase:** create a project, then copy its connection string from **Connect → Session pooler** (Render can't reach Supabase's direct connection). Put your database password into it.
 2. **Anthropic (only if you want Claude):** in the Claude Console, set a monthly spend limit under **Settings → Billing → Spend limits**, e.g. $5. When it's reached, reviews fall back to the free rules engine.
 3. **Render:** **New → Blueprint**, pick this repository. `render.yaml` defines the `atliq-api` service. Paste the Supabase string into `DATABASE_URL` and, optionally, your key into `ANTHROPIC_API_KEY`. On first start the API creates its tables in Supabase and loads the sample data. Check `https://<your-service>.onrender.com/api/health`.
-4. **Vercel:** in the project's **Settings → Environment Variables**, add `VITE_API_URL` = your Render address (no trailing slash), then redeploy. The demo banner disappears and changes are saved.
+4. **Vercel:** the API address is set in `web/.env.production` (`VITE_API_URL`), so every Vercel build talks to it. To point at a different API, change that file (or set `VITE_API_URL` in Vercel's environment variables, which takes priority).
 5. If the web app's address isn't the one in `render.yaml`, update `ATLIQ_CORS_ORIGINS` on Render.
 
 Things to know: Render's free service sleeps when idle, so the first visit after a quiet spell takes about a minute. Anyone with the link can use the app; there's no real sign-in (the "Viewing as" switcher picks the user). Resetting the demo (`POST /api/admin/reset` as `kd`) reloads the sample data in Supabase.
