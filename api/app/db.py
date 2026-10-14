@@ -159,12 +159,13 @@ def connect(sqlite_path: Path | None = None) -> Conn:
     return Conn(raw, pg=False)
 
 
-def create_schema(conn: Conn) -> None:
+def create_schema(conn: Conn, commit: bool = True) -> None:
     if conn.pg:
         conn.raw.execute(POSTGRES_SCHEMA)
     else:
         conn.raw.executescript(SQLITE_SCHEMA)
-    conn.commit()
+    if commit:
+        conn.commit()
 
 
 def _upsert(conn: Conn, table: str, cols: tuple[str, ...], key: str, values: tuple) -> None:
@@ -355,13 +356,16 @@ def reset(conn: Conn | None = None) -> None:
     own = conn is None
     conn = conn or connect()
     with _lock:
+        seed = json.loads(SEED_PATH.read_text(encoding="utf-8"))
+        if conn.pg:
+            _reset_postgres(conn, seed)
+            if own:
+                conn.close()
+            return
         for t in TABLES:
-            if conn.pg and t.endswith("_fts"):
-                continue
             conn.execute(f"DROP TABLE IF EXISTS {t}")
         conn.commit()
         create_schema(conn)
-        seed = json.loads(SEED_PATH.read_text(encoding="utf-8"))
         # Insert in reverse so the first item in the seed file ends up "newest" (highest seq).
         for key in ("contracts", "obligations", "precedents", "delegations"):
             for item in reversed(seed.get(key, [])):
@@ -378,6 +382,34 @@ def reset(conn: Conn | None = None) -> None:
         conn.commit()
     if own:
         conn.close()
+
+
+def _reset_postgres(conn: Conn, seed: dict) -> None:
+    """The whole reset as one transaction (Postgres can roll back DDL): visitors see the old data or the
+    new, never an empty app, and a failure leaves the old data in place. Rows go in batches, because a
+    round trip per row to a hosted database outlasts the hosting platform's request timeout."""
+    cur = conn.raw.cursor()
+    try:
+        for t in TABLES:
+            if not t.endswith("_fts"):
+                cur.execute(f"DROP TABLE IF EXISTS {t}")
+        create_schema(conn, commit=False)
+        # Oldest first, so the first item in the seed file ends up "newest" (highest seq), as put_json does.
+        for key in ("contracts", "obligations", "precedents", "delegations"):
+            rows = [(o["id"], json.dumps(o), i) for i, o in enumerate(reversed(seed.get(key, [])), start=1)]
+            if rows:
+                cur.executemany(f"INSERT INTO {key} (id, json, seq) VALUES (%s, %s, %s)", rows)
+        hist = [(party_key(h["counterparty"]), h["date"], h["kind"], h["detail"], h["source"]) for h in seed.get("history", [])]
+        if hist:
+            cur.executemany("INSERT INTO counterparty_events (counterparty_key, date, kind, detail, source) VALUES (%s, %s, %s, %s, %s)", hist)
+        audit = [(a["id"], a["at"], a["actor"], a["action"], a["detail"], a["kind"]) for a in reversed(seed["audit"])]
+        if audit:
+            cur.executemany("INSERT INTO audit_log (id, at, actor, action, detail, kind) VALUES (%s, %s, %s, %s, %s, %s)", audit)
+        cur.executemany("INSERT INTO meta (key, json) VALUES (%s, %s)", [(k, json.dumps(seed.get(k))) for k in ("dataQuality", "asOf", "source")])
+        conn.commit()
+    except Exception:
+        conn.raw.rollback()
+        raise
 
 
 def get_meta(conn: Conn, key: str):
