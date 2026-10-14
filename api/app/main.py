@@ -130,9 +130,18 @@ def bootstrap(user: str = Depends(get_user), conn=Depends(get_conn)):
         "audit": audit_for(conn, user),
         "ai": "claude" if llm_engine.enabled() else "rules",
         "asOf": db.get_meta(conn, "asOf"),
-        "dataQuality": db.get_meta(conn, "dataQuality") or [],
+        "dataQuality": data_quality_for(conn, user, visible),
         "reliability": _reliability(),
     }
+
+
+def data_quality_for(conn, user: str, visible: list[dict]) -> list[dict]:
+    """Tracker problems, limited to contracts this user can open (each names the contract and its issue)."""
+    issues = db.get_meta(conn, "dataQuality") or []
+    if USERS[user]["superAdmin"]:
+        return issues
+    ids = {c["id"] for c in visible}
+    return [q for q in issues if all(r in ids for r in q.get("rows", []))]
 
 
 def _reliability() -> dict | None:

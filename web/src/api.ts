@@ -62,7 +62,14 @@ async function req<T>(path: string, init: RequestInit = {}): Promise<T> {
     let msg = res.statusText
     try {
       const d = (await res.json()).detail
-      msg = typeof d === 'string' ? d : d?.reasons ? `${d.message}: ${d.reasons.join('; ')}` : (d?.message ?? JSON.stringify(d))
+      msg =
+        typeof d === 'string'
+          ? d
+          : d?.reasons
+            ? `${d.message}: ${d.reasons.join('; ')}`
+            : Array.isArray(d) // FastAPI validation errors: [{ msg: "Value error, Write a comment", ... }]
+              ? d.map((x: { msg?: string }) => (x.msg ?? '').replace(/^Value error, /, '')).join('; ')
+              : (d?.message ?? JSON.stringify(d))
     } catch {
       /* non-JSON error body */
     }

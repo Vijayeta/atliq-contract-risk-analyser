@@ -300,3 +300,11 @@ def test_search_finds_short_terms_and_hyphen_variants(client):
     joined = {o["id"] for o in client.get("/api/obligations?q=noncompete").json()}
     assert joined and joined <= {o["id"] for o in client.get("/api/obligations?q=non-compete").json()}
     assert all("non-compete" in o["clauseType"].lower() for o in client.get("/api/obligations?q=noncompete").json())
+
+
+def test_tracker_problems_are_limited_to_visible_contracts(client):
+    kd = client.get("/api/bootstrap", headers=as_user("kd")).json()
+    bh = client.get("/api/bootstrap", headers=as_user("bhavin")).json()
+    visible = {c["id"] for c in bh["contracts"]}
+    assert len(bh["dataQuality"]) < len(kd["dataQuality"])
+    assert all(set(q["rows"]) <= visible for q in bh["dataQuality"])

@@ -187,7 +187,7 @@ export default function Review({
     { ok: highs === 0, text: highs ? `${highs} high-severity finding${highs > 1 ? 's' : ''} undecided` : 'High-severity findings decided', tab: 'findings' },
     { ok: live === 0, text: live ? `Conflicts with ${live} live obligation${live > 1 ? 's' : ''}` : 'No live obligation conflicts', tab: 'conflicts' },
     { ok: c.entityCheck.status === 'pass', text: c.entityCheck.status === 'pass' ? 'Correct AtliQ entity' : 'Wrong AtliQ entity named', tab: 'checks' },
-    ...(c.family ? [{ ok: !c.family.orphan, text: c.family.orphan ? 'Parent agreement not found' : 'Parent agreement linked', tab: 'checks' as Tab }] : []),
+    ...(c.family && !c.family.relation.startsWith('Revised draft') ? [{ ok: !c.family.orphan, text: c.family.orphan ? 'Parent agreement not found' : 'Parent agreement linked', tab: 'checks' as Tab }] : []),
     { ok: blockingQs === 0, text: blockingQs ? `${blockingQs} blocking question${blockingQs > 1 ? 's' : ''} open` : 'No blocking questions', tab: 'questions' },
   ]
   const blocked = gates.some((g) => !g.ok)
@@ -260,6 +260,14 @@ export default function Review({
             </div>
             <p className="mt-0.5 text-[13px] text-ink-500">
               {c.name.split(' - ')[1]?.trim() ?? c.docType} · <span className="text-ink-400">{c.id}</span>
+              {c.family?.parent && c.family.relation.startsWith('Revised draft') && (
+                <>
+                  {' · '}Revised draft of{' '}
+                  <a href={`#/review/${c.family.parent.id}`} className="font-medium text-brand-600 hover:text-brand-700">
+                    {c.family.parent.id}
+                  </a>
+                </>
+              )}
             </p>
             <DealFacts c={c} closed={closed} />
             <DetectedDetails c={c} canEdit={(mayApprove || !!myRole) && !closed} hax={hax} />
@@ -820,6 +828,7 @@ function FindingRow({
   const [verdict, setVerdict] = useState<ReviewerMark['verdict']>('agree')
   const [regrade, setRegrade] = useState<Severity>('low')
   const [comment, setComment] = useState('')
+  const [commentMissing, setCommentMissing] = useState(false)
   const [copied, setCopied] = useState(false)
   const [dismissing, setDismissing] = useState(false)
   const [editing, setEditing] = useState(false)
@@ -1132,6 +1141,10 @@ function FindingRow({
                     className="mt-3 space-y-2"
                     onSubmit={(e) => {
                       e.preventDefault()
+                      if (verdict !== 'agree' && !comment.trim()) {
+                        setCommentMissing(true)
+                        return
+                      }
                       onMark({
                         by: me,
                         as: myRole,
@@ -1162,12 +1175,16 @@ function FindingRow({
                     )}
                     <textarea
                       value={comment}
-                      onChange={(e) => setComment(e.target.value)}
+                      onChange={(e) => {
+                        setComment(e.target.value)
+                        setCommentMissing(false)
+                      }}
                       placeholder={verdict === 'agree' ? 'Optional note' : 'Why?'}
                       required={verdict !== 'agree'}
                       rows={2}
                       className={`${inputCls} h-auto py-2`}
                     />
+                    {commentMissing && <p className="text-[12px] text-risk-high">Write a comment first.</p>}
                     <div className="flex gap-2">
                       <Button type="submit" variant="primary" size="sm">
                         Save
@@ -1416,7 +1433,9 @@ function Checks({ c, examined }: { c: Contract; examined: number }) {
               <p className="flex items-center gap-2 text-[14px]">
                 <GitBranch size={16} className="text-ink-400" />
                 <span className="font-semibold text-ink-900">{c.family.parent.name}</span>
-                <span className="text-ink-400">signed {c.family.parent.signed}</span>
+                <span className="text-ink-400">
+                  {/^\d{1,2} [A-Z][a-z]{2} \d{4}/.test(c.family.parent.signed) ? `signed ${c.family.parent.signed}` : c.family.parent.signed}
+                </span>
               </p>
             )}
             <p className={`text-[13px] leading-relaxed ${c.family.orphan ? 'text-risk-med' : 'mt-2 text-ink-600'}`}>{c.family.note}</p>
