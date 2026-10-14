@@ -308,3 +308,17 @@ def test_tracker_problems_are_limited_to_visible_contracts(client):
     visible = {c["id"] for c in bh["contracts"]}
     assert len(bh["dataQuality"]) < len(kd["dataQuality"])
     assert all(set(q["rows"]) <= visible for q in bh["dataQuality"])
+
+
+def test_cors_allows_this_projects_vercel_addresses_only(client):
+    def allowed(origin):
+        r = client.options("/api/bootstrap", headers={"Origin": origin, "Access-Control-Request-Method": "GET", "Access-Control-Request-Headers": "x-user"})
+        return r.status_code == 200 and r.headers.get("access-control-allow-origin") == origin
+
+    for ok in ("http://localhost:5173", "https://atliq-contract-risk-analyser.vercel.app", "https://atliq-contract-risk-analyser-botd.vercel.app",
+               "https://atliq-contract-risk-analyser-git-main-vijayeta-s-projects.vercel.app",
+               "https://atliq-contract-risk-analyser-a1b2c3d4e-vijayeta-s-projects.vercel.app"):
+        assert allowed(ok), ok
+    for bad in ("https://evil.example", "https://atliq-contract-risk-analyser-evil.vercel.app", "https://atliq-contract-risk-analyser.vercel.app.evil.com",
+                "http://atliq-contract-risk-analyser.vercel.app"):
+        assert not allowed(bad), bad

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Lock } from 'lucide-react'
 import {
   blockReasons,
@@ -238,9 +238,9 @@ export default function App() {
    * Optimistic update: the change is applied locally first, then sent to the server. The server's
    * copy replaces ours; on error we roll back and say why. Offline, the local change simply stays.
    */
-  const sync = (call: () => Promise<Contract>, rollback: Contract[]) => {
+  const sync = (call: () => Promise<Contract>, rollback: Contract[], key?: string) => {
     if (!online) return
-    call()
+    const done = call()
       .then((c) => {
         replaceContract(c)
         refreshAudit()
@@ -249,7 +249,11 @@ export default function App() {
         setData(rollback)
         toast(e.message)
       })
+    if (key) inFlight.current.set(key, done)
   }
+  /** The latest decision/wording request per finding ("C-023/F-2"). Saving the outcome as precedent
+   *  waits for it: on a slow connection the save could otherwise reach the server first. */
+  const inFlight = useRef(new Map<string, Promise<void>>())
 
   /** G8 — every reversible change offers Undo for a few seconds. `server` re-sends the old values. */
   const undoAction = (what: string, server?: () => Promise<Contract>): ToastItem['action'] => {
@@ -329,7 +333,7 @@ export default function App() {
     )
     patchFinding(findingId, (x) => ({ ...x, decision: d, decidedBy: d === 'pending' ? undefined : user, dismissReason: undefined }))
     log(d === 'pending' ? 'Finding decision cleared' : `Finding ${d}`, `${cid} ${findingId}`)
-    sync(() => api.patchFinding(cid, findingId, { decision: d }), prev)
+    sync(() => api.patchFinding(cid, findingId, { decision: d }), prev, `${cid}/${findingId}`)
     if (d !== 'pending' && f) toast(`§${f.citation.section} marked ${d}`, undo)
   }
 
@@ -490,7 +494,7 @@ export default function App() {
         api.patchFinding(cid, fid, { editedFallback: pf?.editedFallback?.text ?? null, decision: pf?.decision ?? 'pending' }),
       )
       patchFinding(fid, (f) => ({ ...f, editedFallback: { text, by: user }, decision: 'modified', decidedBy: user }))
-      sync(() => api.patchFinding(cid, fid, { editedFallback: text }), prev)
+      sync(() => api.patchFinding(cid, fid, { editedFallback: text }), prev, `${cid}/${fid}`)
       log('Suggested wording edited', `${activeId} ${fid}: AI original kept`)
       toast('Wording saved. The AI original is kept.', undo)
     },
@@ -513,22 +517,36 @@ export default function App() {
         at: stamp(),
         status: 'pending',
       }
+      const announce = () => {
+        log('Outcome saved as pending precedent', `${key} as ${label === 'standard' ? 'standard position' : 'one-off exception'}, awaiting KD approval`)
+        if (user !== 'kd')
+          setNotifications((n) => [
+            { id: `N-${Date.now()}`, kind: 'questions', title: 'Precedent waiting for your approval', detail: `${c.counterparty} · saved by ${me}`, at: stamp(), to: '#/precedent', for: ['kd'] },
+            ...n,
+          ])
+        toast('Saved. Waiting for Karandeep’s approval', { label: 'View', run: () => go('precedent') })
+      }
       if (online)
-        api
-          .savePending(c.id, fid, label)
+        (inFlight.current.get(key) ?? Promise.resolve())
+          .then(() => api.savePending(c.id, fid, label))
           .then((srv) => {
             setPending((p) => [srv, ...p])
             refreshAudit()
+            announce()
           })
-          .catch((e: Error) => toast(e.message))
-      else setPending((p) => [item, ...p])
-      log('Outcome saved as pending precedent', `${key} as ${label === 'standard' ? 'standard position' : 'one-off exception'}, awaiting KD approval`)
-      if (user !== 'kd')
-        setNotifications((n) => [
-          { id: `N-${Date.now()}`, kind: 'questions', title: 'Precedent waiting for your approval', detail: `${c.counterparty} · saved by ${me}`, at: stamp(), to: '#/precedent', for: ['kd'] },
-          ...n,
-        ])
-      toast('Saved. Waiting for Karandeep’s approval', { label: 'View', run: () => go('precedent') })
+          .catch((e: Error) => {
+            // Not saved: bring the "Remember this outcome?" choice back and say why.
+            setSaved((s) => {
+              const rest = { ...s }
+              delete rest[key]
+              return rest
+            })
+            toast(e.message)
+          })
+      else {
+        setPending((p) => [item, ...p])
+        announce()
+      }
     },
     onRegrade: (fid, s: Severity) => {
       const f = findingOf(fid)

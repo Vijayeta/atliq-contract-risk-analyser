@@ -46,7 +46,14 @@ async def lifespan(_: FastAPI):
 app = FastAPI(title="AtliQ Contract Risk Analyzer API", version="0.1.0", lifespan=lifespan)
 # Local Vite dev server, plus the hosted web app's addresses (comma-separated in ATLIQ_CORS_ORIGINS).
 CORS_ORIGINS = ["http://localhost:5173", *[o.strip() for o in os.environ.get("ATLIQ_CORS_ORIGINS", "").split(",") if o.strip()]]
-app.add_middleware(CORSMiddleware, allow_origins=CORS_ORIGINS, allow_methods=["*"], allow_headers=["*"])
+# Vercel serves one project under several addresses: the production domain, extra aliases
+# ("-botd") and per-deployment preview links on the team's domain. Allow them all.
+CORS_ORIGIN_REGEX = os.environ.get(
+    "ATLIQ_CORS_ORIGIN_REGEX",
+    r"https://atliq-contract-risk-analyser(-botd|-[a-z0-9-]+-vijayeta-s-projects)?\.vercel\.app",
+)
+app.add_middleware(CORSMiddleware, allow_origins=CORS_ORIGINS, allow_origin_regex=CORS_ORIGIN_REGEX or None,
+                   allow_methods=["*"], allow_headers=["*"])
 app.add_middleware(GZipMiddleware, minimum_size=1000)  # the bootstrap payload is ~1 MB of JSON
 
 MAX_BYTES = 25 * 1024 * 1024
