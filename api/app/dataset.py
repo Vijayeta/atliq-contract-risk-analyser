@@ -189,7 +189,6 @@ def build() -> dict:
     conn.close()
 
     dq = data_quality(rows, register)
-    audit.append({"at": "28 Sep 2026, 08:55", "actor": "System", "action": "Tracker checked", "detail": f"{len(dq)} data-quality issues found in contract_tracker.csv (see Audit log).", "kind": "system"})
     audit.append({"at": "28 Sep 2026, 08:50", "actor": "System", "action": "Dataset imported",
                   "detail": f"{sum(1 for f in FILES if f.startswith('incoming'))} drafts, {sum(1 for f in FILES if f.startswith('signed'))} signed contracts, {len(register)} obligations, {len(prec['precedents'])} precedents.", "kind": "system"})
     for i, a in enumerate(audit):

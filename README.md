@@ -1,16 +1,16 @@
 # AtliQ Contract Risk Analyzer
 
-**Live app: [atliq-contract-risk-analyser-botd.vercel.app](https://atliq-contract-risk-analyser-botd.vercel.app/)** · API: [atliq-api.onrender.com](https://atliq-api.onrender.com/api/health)
+**Live app: [atliq-contract-risk-analyser.vercel.app](https://atliq-contract-risk-analyser.vercel.app/)** · API: [atliq-api.onrender.com](https://atliq-api.onrender.com/api/health)
 
 > **The full app is hosted, on three free services:** the web app on Vercel, the API on Render, and the data on Supabase. Uploads, reviews and decisions are saved. Things to know:
 > - **The API sleeps when idle.** The first visit after a quiet spell can take about a minute while Render wakes it up; the app says so and offers Retry.
 > - **The API isn't on Vercel** because it needs a lasting database and long-running review jobs, and Vercel runs Python as short-lived functions (the database would be wiped, reviews cut off, uploads capped at 4.5 MB).
-> - **Claude is on in the hosted version** (Claude Haiku 5.5 alongside the rules engine), with a monthly spend limit on the API key. A review with Claude takes about a minute. If the limit is reached, reviews fall back to the free rules engine until the next month.
+> - **Claude is on in the hosted version** (Claude Haiku 5.5 alongside the rules engine). A review with Claude takes about a minute. Keep a monthly spend limit on the API key (Claude Console → Settings → Billing → Spend limits); if it's reached, reviews fall back to the free rules engine until the next month.
 > - **Anyone with the link can use it.** There's no real sign-in; "Viewing as" picks the user. Sample data can be restored with a reset (see [Configuration](#configuration)).
 
 A contract review assistant for AtliQ Technologies. Upload a contract and it reads every clause, flags risk with the exact quote behind each finding, checks the AtliQ legal entity, and catches clashes with promises AtliQ has already signed (non-competes, best-price clauses, exclusivity). People make every decision; the app never signs, approves or sends anything.
 
-Built as a capstone demo: a FastAPI + SQLite backend and a React web app. It runs for free on a deterministic rules engine, and can add Claude for a second opinion when an Anthropic API key is set.
+Built as a capstone demo: a FastAPI backend (SQLite locally, Postgres on Supabase when hosted) and a React web app. It runs for free on a deterministic rules engine, and can add Claude for a second opinion when an Anthropic API key is set.
 
 ## What it does
 
@@ -71,14 +71,15 @@ Each upload or re-run with Claude is a paid API call.
 | `DATABASE_URL` | not set | Postgres connection string (e.g. Supabase). When set, the API uses Postgres instead of SQLite |
 | `ATLIQ_DB` | `api/atliq.db` | SQLite database file, used when `DATABASE_URL` isn't set |
 | `ATLIQ_UPLOADS` | `api/uploads/` | Working copies of uploaded files (the originals are also kept in the database) |
-| `ATLIQ_CORS_ORIGINS` | not set | Web app addresses allowed to call the API, comma-separated (`localhost:5173` is always allowed) |
+| `ATLIQ_CORS_ORIGINS` | not set | Extra web app addresses allowed to call the API, comma-separated (`localhost:5173` is always allowed) |
+| `ATLIQ_CORS_ORIGIN_REGEX` | this project's Vercel addresses | Pattern of allowed addresses; by default the production domain, its aliases and the team's preview links |
 | `VITE_API_URL` (web app) | not set | Address of the API, for a web app hosted separately from it. Locally, `/api` is proxied to port 8000 |
 
 To reset the demo data: `curl -X POST -H "X-User: kd" localhost:8000/api/admin/reset`
 
 ## Deployment
 
-The live demo is the `web/` folder deployed on Vercel (imported as a single project, Vite preset). Every push to `main` redeploys it. `.vercelignore` keeps `api/` out of the upload, so Vercel doesn't turn the Python files into serverless functions.
+The web app is the `web/` folder deployed on Vercel (imported as a single project, Vite preset). Every push to `main` redeploys it. `.vercelignore` keeps `api/` out of the upload, so Vercel doesn't turn the Python files into serverless functions.
 
 Vercel sets `VERCEL=1` during builds. The web app calls the API named by `VITE_API_URL`, set in `web/.env.production`. Without an API address, `web/vite.config.ts` builds a sample-data-only demo instead, with a banner saying so.
 
@@ -88,21 +89,21 @@ Web app on Vercel, API on Render, data on Supabase, all on free plans.
 
 1. **Supabase:** create a project, then copy its connection string from **Connect → Session pooler** (Render can't reach Supabase's direct connection). Put your database password into it.
 2. **Anthropic (only if you want Claude):** in the Claude Console, set a monthly spend limit under **Settings → Billing → Spend limits**, e.g. $5. When it's reached, reviews fall back to the free rules engine.
-3. **Render:** **New → Blueprint**, pick this repository. `render.yaml` defines the `atliq-api` service. Paste the Supabase string into `DATABASE_URL` and, optionally, your key into `ANTHROPIC_API_KEY`. On first start the API creates its tables in Supabase and loads the sample data. Check `https://<your-service>.onrender.com/api/health`.
+3. **Render:** **New → Blueprint**, pick this repository. `render.yaml` defines the `atliq-api` service. Paste the Supabase string into `DATABASE_URL` and, optionally, your key into `ANTHROPIC_API_KEY`. On first start the API creates its tables in Supabase and loads the sample data. Check `https://<your-service>.onrender.com/api/health`: it shows `"ok": true`, whether Claude is on, and the deployed commit (`version`).
 4. **Vercel:** the API address is set in `web/.env.production` (`VITE_API_URL`), so every Vercel build talks to it. To point at a different API, change that file (or set `VITE_API_URL` in Vercel's environment variables, which takes priority).
-5. If the web app's address isn't the one in `render.yaml`, update `ATLIQ_CORS_ORIGINS` on Render.
+5. The API already accepts this project's Vercel addresses. For any other web address, add it to `ATLIQ_CORS_ORIGINS` on Render.
 
-Things to know: Render's free service sleeps when idle, so the first visit after a quiet spell takes about a minute. Anyone with the link can use the app; there's no real sign-in (the "Viewing as" switcher picks the user). Resetting the demo (`POST /api/admin/reset` as `kd`) reloads the sample data in Supabase.
+Things to know: Render's free service sleeps when idle, so the first visit after a quiet spell takes about a minute. Anyone with the link can use the app; there's no real sign-in (the "Viewing as" switcher picks the user). Resetting the demo (`POST /api/admin/reset` as `kd`) reloads the sample data in Supabase in a couple of seconds, as one transaction.
 
 ## Tests and evaluation
 
 ```bash
 cd api
-uv run pytest                    # 69 tests: parsing, segmentation, detection, conflicts, access rules, uploads
+uv run pytest                    # 80 tests: parsing, segmentation, detection, conflicts, access rules, uploads, delegations, precedents, CORS
 uv run python -m app.eval        # score the analyzer against the golden set (eval/expected.json)
 ```
 
-The tests use SQLite by default. Set `DATABASE_URL` to an empty Postgres database to run the same suite against Postgres.
+The tests use SQLite by default. Set `DATABASE_URL` to an empty Postgres database to run the same suite against Postgres; all 80 pass on both.
 
 The golden set lists 66 expected issues and 11 cross-contract conflicts across 15 draft contracts. The rules engine scores 100% on it, but its rules were written on those same drafts, so expect lower accuracy on contracts it hasn't seen.
 
@@ -143,4 +144,5 @@ web/                      React + TypeScript + Vite + Tailwind front end
   src/Review.tsx          The contract review page
   src/pages.tsx           Queue, register, precedents, audit log, team, new review
   src/api.ts              Typed client for the API
+  .env.production         The hosted API's address (VITE_API_URL), used by production builds
 ```

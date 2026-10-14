@@ -1,7 +1,7 @@
 import { Lock } from 'lucide-react'
 import { users, type UserId } from './data'
 import { engineChangelog, notificationKindLabel, type NotificationKind, type Settings } from './hax'
-import { Button, Card, PageHeader, Tag } from './ui'
+import { Button, Card, PageHeader } from './ui'
 
 /* ----------------------------- G17 — global controls ----------------------------- */
 
@@ -79,7 +79,7 @@ export function SettingsPage({
               }
             />
             <Fixed label="Mask counterparty names before AI calls" value="On" note="Always on in this build" />
-            <Fixed label="Clause coverage needed for a verdict" value="99%" note={isKD ? 'Set at calibration (PRD §17 #8)' : undefined} locked={!isKD} />
+            <Fixed label="Clause coverage needed for a verdict" value="99%" locked={!isKD} />
             <Fixed label="Learn from decisions" value="Approved only" note="Saved outcomes wait for KD's approval before they're used" locked={!isKD} />
             <Fixed label="Automatic signing" value="Never" note="Not available, by design" />
           </div>
@@ -89,10 +89,7 @@ export function SettingsPage({
           <ul className="space-y-4">
             {engineChangelog.map((e) => (
               <li key={e.version}>
-                <p className="flex flex-wrap items-center gap-2 text-[14px] font-semibold text-ink-900">
-                  {e.title}
-                  <Tag className="bg-slate-100 font-mono text-ink-600">{e.version}</Tag>
-                </p>
+                <p className="text-[14px] font-semibold text-ink-900">{e.title}</p>
                 <p className="mt-0.5 text-[13px] leading-relaxed text-ink-600">{e.detail}</p>
                 <p className="mt-0.5 text-[12px] text-ink-400">
                   {e.date} · {e.affects}

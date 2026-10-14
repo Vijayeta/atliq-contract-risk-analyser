@@ -9,7 +9,6 @@ import {
   type AuditEntry,
   type AuditKind,
   type Contract,
-  type DataQualityIssue,
   delegationActive,
   type Delegation,
   type Obligation,
@@ -394,7 +393,7 @@ export function PrecedentSearch({
 
 /* ------------------------------- Audit ------------------------------- */
 
-export function AuditLog({ audit, dataQuality = [] }: { audit: AuditEntry[]; dataQuality?: DataQualityIssue[] }) {
+export function AuditLog({ audit }: { audit: AuditEntry[] }) {
   const [kind, setKind] = useState<'all' | AuditKind>('all')
   const rows = audit.filter((e) => kind === 'all' || e.kind === kind)
   const label: Record<AuditKind, string> = { human: 'Human', ai: 'AI', system: 'System', retrieval: 'Retrieval', delegation: 'Delegation' }
@@ -408,21 +407,6 @@ export function AuditLog({ audit, dataQuality = [] }: { audit: AuditEntry[]; dat
   return (
     <div className="space-y-6">
       <PageHeader title="Audit log" subtitle="AI outputs, evidence retrievals, human decisions, delegations and outcomes. Append-only." />
-      {dataQuality.length > 0 && (
-        <Card title={`Problems found in the contract tracker (${dataQuality.length})`} subtitle="contract_tracker.csv checked during import for the gaps the dataset README warns about">
-          <ul className="divide-y divide-slate-100">
-            {dataQuality.map((q) => (
-              <li key={q.title} className="flex gap-3 py-2.5 first:pt-0">
-                <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${q.severity === 'high' ? 'bg-risk-high' : q.severity === 'medium' ? 'bg-risk-med' : 'bg-ink-300'}`} />
-                <span className="min-w-0">
-                  <span className="block text-[14px] font-medium text-ink-900">{q.title}</span>
-                  <span className="block text-[13px] leading-relaxed text-ink-600">{q.detail}</span>
-                </span>
-              </li>
-            ))}
-          </ul>
-        </Card>
-      )}
       <Segmented
         value={kind}
         onChange={setKind}

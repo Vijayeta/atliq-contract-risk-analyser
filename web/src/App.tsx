@@ -7,7 +7,6 @@ import {
   visibleTo,
   type AuditEntry,
   type AuditKind,
-  type DataQualityIssue,
   type Contract,
   type ContractStatus,
   type Delegation,
@@ -35,7 +34,6 @@ interface OfflineSeed {
   precedents: Precedent[]
   delegations: Delegation[]
   audit: AuditEntry[]
-  dataQuality: DataQualityIssue[]
 }
 import Overview from './Overview'
 import Review, { type ReviewHax, type Tab } from './Review'
@@ -149,7 +147,6 @@ export default function App() {
   const [serverHidden, setServerHidden] = useState(0)
   const [obligations, setObligations] = useState<Obligation[]>([])
   const [precedents, setPrecedents] = useState<Precedent[]>([])
-  const [dataQuality, setDataQuality] = useState<DataQualityIssue[]>([])
 
   const load = useCallback(async (u: UserId) => {
     setApiUser(u)
@@ -164,7 +161,6 @@ export default function App() {
       setPending(b.pending)
       setServerHidden(b.hidden)
       setAi(b.ai)
-      setDataQuality(b.dataQuality ?? [])
       setOnline(true)
     } catch {
       // Offline: load the same dataset the API serves (copied to src/seed.json), lazily so it
@@ -175,7 +171,6 @@ export default function App() {
       setAudit(seed.audit)
       setObligations(seed.obligations)
       setPrecedents(seed.precedents)
-      setDataQuality(seed.dataQuality)
       setOnline(false)
     }
   }, [])
@@ -764,7 +759,7 @@ export default function App() {
           {view === 'precedent' && (
             <PrecedentSearch precedents={precedents} pending={pending} canApprove={user === 'kd'} onApprove={approvePrecedent} onDiscard={discardPrecedent} />
           )}
-          {view === 'audit' && <AuditLog audit={audit} dataQuality={dataQuality} />}
+          {view === 'audit' && <AuditLog audit={audit} />}
           {view === 'team' && (
             <Team user={user} data={data} delegations={delegations} onDelegate={delegate} onRevoke={revoke} />
           )}
