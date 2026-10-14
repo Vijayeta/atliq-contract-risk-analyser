@@ -4,7 +4,6 @@ from __future__ import annotations
 import json
 import logging
 import re
-import sqlite3
 import time
 from pathlib import Path
 from typing import Callable
@@ -43,7 +42,7 @@ def _clients() -> list[dict]:
         return []
 
 
-def _family(conn: sqlite3.Connection, cid: str, doc_type: str, role: str, cp: str, full: str, parent_id: str | None = None) -> dict | None:
+def _family(conn: db.Conn, cid: str, doc_type: str, role: str, cp: str, full: str, parent_id: str | None = None) -> dict | None:
     key = db.party_key(cp)
     others = [c for c in db.list_json(conn, "contracts") if c["id"] != cid]
     # A revised draft uploaded from an earlier review ("Upload revised draft") links to that review.
@@ -93,7 +92,7 @@ def _source(prov: str | None) -> str:
 
 
 def run_review(
-    conn: sqlite3.Connection,
+    conn: db.Conn,
     contract_id: str,
     path: Path,
     meta: dict,

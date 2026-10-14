@@ -2,10 +2,11 @@
 
 **Live demo: [atliq-contract-risk-analyser-botd.vercel.app](https://atliq-contract-risk-analyser-botd.vercel.app/)**
 
-> **Only the web app is hosted; the API is not.** The live demo runs in your browser on the sample contracts, so you can explore every review, but changes aren't saved and no new review runs. The API isn't hosted because:
-> - **It needs a lasting database and long-running jobs.** Vercel runs Python as short-lived functions, so the SQLite database would be wiped regularly, a review running after an upload would be cut off, and uploads would be capped at 4.5 MB.
-> - **Claude reviews cost money per contract.** Hosting the API publicly would put the Anthropic API key behind an open upload form, where anyone could run up charges.
-> - **This is a capstone demo kept free to run.** To try uploads and Claude reviews, run the app locally ([Quick start](#quick-start)).
+> **Only the web app is hosted; the API is not.** The live demo runs in your browser on the sample contracts, so you can explore every review, but changes aren't saved and no new review runs. The API isn't on Vercel because:
+> - **It needs a lasting database and long-running jobs.** Vercel runs Python as short-lived functions, so the database would be wiped regularly, a review running after an upload would be cut off, and uploads would be capped at 4.5 MB.
+> - **Claude reviews cost money per contract.** A public API puts the Anthropic API key behind an open upload form, so a spend limit has to be in place first.
+>
+> The repo is ready to host the full app for free instead: web app on Vercel, API on Render, data on Supabase. See [Hosting the full app](#hosting-the-full-app). Until then, run it locally to try uploads and Claude reviews ([Quick start](#quick-start)).
 
 A contract review assistant for AtliQ Technologies. Upload a contract and it reads every clause, flags risk with the exact quote behind each finding, checks the AtliQ legal entity, and catches clashes with promises AtliQ has already signed (non-competes, best-price clauses, exclusivity). People make every decision; the app never signs, approves or sends anything.
 
@@ -67,14 +68,31 @@ Each upload or re-run with Claude is a paid API call.
 | `ANTHROPIC_API_KEY` | not set | Turns on Claude alongside the rules engine |
 | `ATLIQ_MODEL` | `claude-haiku-5-5` | Claude model to use |
 | `ATLIQ_AS_OF` | `2026-09-28` | The date treated as "today" for obligation status and due dates |
-| `ATLIQ_DB` | `api/atliq.db` | SQLite database file |
-| `ATLIQ_UPLOADS` | `api/uploads/` | Where uploaded contracts are stored |
+| `DATABASE_URL` | not set | Postgres connection string (e.g. Supabase). When set, the API uses Postgres instead of SQLite |
+| `ATLIQ_DB` | `api/atliq.db` | SQLite database file, used when `DATABASE_URL` isn't set |
+| `ATLIQ_UPLOADS` | `api/uploads/` | Working copies of uploaded files (the originals are also kept in the database) |
+| `ATLIQ_CORS_ORIGINS` | not set | Web app addresses allowed to call the API, comma-separated (`localhost:5173` is always allowed) |
+| `VITE_API_URL` (web app) | not set | Address of the API, for a web app hosted separately from it. Locally, `/api` is proxied to port 8000 |
 
 To reset the demo data: `curl -X POST -H "X-User: kd" localhost:8000/api/admin/reset`
 
 ## Deployment
 
-The live demo is the `web/` folder deployed on Vercel (imported as a single project, Vite preset, no environment variables). Every push to `main` redeploys it. Vercel sets `VERCEL=1` during builds, and `web/vite.config.ts` uses that to build in hosted-demo mode: no calls to the API, sample data only, and a banner saying so. `.vercelignore` keeps `api/` out of the upload, so Vercel doesn't turn the Python files into serverless functions.
+The live demo is the `web/` folder deployed on Vercel (imported as a single project, Vite preset). Every push to `main` redeploys it. `.vercelignore` keeps `api/` out of the upload, so Vercel doesn't turn the Python files into serverless functions.
+
+Vercel sets `VERCEL=1` during builds. Without `VITE_API_URL`, `web/vite.config.ts` then builds the hosted demo: no calls to an API, sample data only, and a banner saying so. With `VITE_API_URL` set, the web app talks to that API.
+
+### Hosting the full app
+
+Web app on Vercel, API on Render, data on Supabase, all on free plans.
+
+1. **Supabase:** create a project, then copy its connection string from **Connect → Session pooler** (Render can't reach Supabase's direct connection). Put your database password into it.
+2. **Anthropic (only if you want Claude):** in the Claude Console, set a monthly spend limit under **Settings → Billing → Spend limits**, e.g. $5. When it's reached, reviews fall back to the free rules engine.
+3. **Render:** **New → Blueprint**, pick this repository. `render.yaml` defines the `atliq-api` service. Paste the Supabase string into `DATABASE_URL` and, optionally, your key into `ANTHROPIC_API_KEY`. On first start the API creates its tables in Supabase and loads the sample data. Check `https://<your-service>.onrender.com/api/health`.
+4. **Vercel:** in the project's **Settings → Environment Variables**, add `VITE_API_URL` = your Render address (no trailing slash), then redeploy. The demo banner disappears and changes are saved.
+5. If the web app's address isn't the one in `render.yaml`, update `ATLIQ_CORS_ORIGINS` on Render.
+
+Things to know: Render's free service sleeps when idle, so the first visit after a quiet spell takes about a minute. Anyone with the link can use the app; there's no real sign-in (the "Viewing as" switcher picks the user). Resetting the demo (`POST /api/admin/reset` as `kd`) reloads the sample data in Supabase.
 
 ## Tests and evaluation
 
@@ -83,6 +101,8 @@ cd api
 uv run pytest                    # 69 tests: parsing, segmentation, detection, conflicts, access rules, uploads
 uv run python -m app.eval        # score the analyzer against the golden set (eval/expected.json)
 ```
+
+The tests use SQLite by default. Set `DATABASE_URL` to an empty Postgres database to run the same suite against Postgres.
 
 The golden set lists 66 expected issues and 11 cross-contract conflicts across 15 draft contracts. The rules engine scores 100% on it, but its rules were written on those same drafts, so expect lower accuracy on contracts it hasn't seen.
 
@@ -104,11 +124,13 @@ To try an upload, use any file from `Dataset/incoming/` on **New review**.
 ```
 Dataset/                  Source contracts, tracker and notes (see above)
 Project Documents/        PRD, AI opportunity map, user research and project deck
+render.yaml               Render Blueprint for hosting the API
 api/                      FastAPI backend
   app/main.py             Routes; every access rule is enforced here
   app/access.py           Coverage, ready-to-sign gates, approver and delegation rules
   app/company.py          AtliQ facts: the two legal entities, insurance, payment terms, "today"
   app/rules.py            Entity and governing-law rules
+  app/db.py               Storage: SQLite locally, Postgres (Supabase) when DATABASE_URL is set
   app/pipeline/           parse → segment → detect → rules / Claude → conflicts → verify → summary
   app/dataset.py          Builds seed/seed.json from the source dataset
   app/eval.py             Golden-set evaluation

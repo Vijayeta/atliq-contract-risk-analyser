@@ -47,11 +47,15 @@ export function setApiUser(u: UserId) {
   currentUser = u
 }
 
+/** Where the API lives. Empty locally (Vite proxies /api to :8000); the hosted web app sets
+ *  VITE_API_URL to the hosted API, e.g. https://atliq-api.onrender.com */
+const API_BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/+$/, '')
+
 async function req<T>(path: string, init: RequestInit = {}): Promise<T> {
   const json = init.body && !(init.body instanceof FormData)
   let res: Response
   try {
-    res = await fetch(`/api${path}`, {
+    res = await fetch(`${API_BASE}/api${path}`, {
       ...init,
       headers: { 'X-User': currentUser, ...(json ? { 'Content-Type': 'application/json' } : {}), ...init.headers },
     })

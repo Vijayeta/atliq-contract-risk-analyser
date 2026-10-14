@@ -104,7 +104,7 @@ def test_failed_uploads_do_not_reuse_contract_ids(client):
 def test_upload_reserves_id_before_reading_the_file(client):
     # The ID is reserved before the first await, so an upload still being read already holds it.
     cid = db.next_contract_id(conn := db.connect())
-    conn.execute("INSERT INTO uploads VALUES (?, 'in-flight.txt', 'x', NULL)", (cid,))
+    conn.execute("INSERT INTO uploads (contract_id, filename, path) VALUES (?, 'in-flight.txt', 'x')", (cid,))
     conn.commit()
     conn.close()
     assert _upload(client, "next.txt", b"hello")["contractId"] != cid

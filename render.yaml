@@ -1,0 +1,18 @@
+# Render Blueprint for the AtliQ API (FastAPI). The web app stays on Vercel; data lives in Supabase.
+# Render asks for the values marked `sync: false` when you create the Blueprint.
+services:
+  - type: web
+    name: atliq-api
+    runtime: python
+    plan: free
+    rootDir: api
+    buildCommand: pip install uv && uv sync --frozen --no-dev
+    startCommand: uv run --frozen --no-dev uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL          # Supabase → Connect → Session pooler connection string
+        sync: false
+      - key: ANTHROPIC_API_KEY     # optional: leave empty to run the free rules engine only
+        sync: false
+      - key: ATLIQ_CORS_ORIGINS    # the web app's address(es), comma-separated
+        value: https://atliq-contract-risk-analyser-botd.vercel.app

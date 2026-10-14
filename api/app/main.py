@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import shutil
 import uuid
 from contextlib import asynccontextmanager
@@ -40,7 +41,9 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(title="AtliQ Contract Risk Analyzer API", version="0.1.0", lifespan=lifespan)
-app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:5173"], allow_methods=["*"], allow_headers=["*"])
+# Local Vite dev server, plus the hosted web app's addresses (comma-separated in ATLIQ_CORS_ORIGINS).
+CORS_ORIGINS = ["http://localhost:5173", *[o.strip() for o in os.environ.get("ATLIQ_CORS_ORIGINS", "").split(",") if o.strip()]]
+app.add_middleware(CORSMiddleware, allow_origins=CORS_ORIGINS, allow_methods=["*"], allow_headers=["*"])
 
 MAX_BYTES = 25 * 1024 * 1024
 Severity = Literal["high", "medium", "low", "unknown"]
@@ -255,9 +258,10 @@ async def upload(
     # Reserve the ID before the first await, so a concurrent upload can't be given the same one.
     cid = db.next_contract_id(conn)
     dest = db.UPLOAD_DIR / f"{cid}{'.' + name.rsplit('.', 1)[-1].lower()}"
-    conn.execute("INSERT INTO uploads VALUES (?, ?, ?, NULL)", (cid, name, str(dest)))
+    conn.execute("INSERT INTO uploads (contract_id, filename, path) VALUES (?, ?, ?)", (cid, name, str(dest)))
     conn.commit()
     size = 0
+    content = bytearray()
     with dest.open("wb") as out:
         while chunk := await file.read(1024 * 1024):
             size += len(chunk)
@@ -268,12 +272,14 @@ async def upload(
                 conn.commit()
                 raise HTTPException(413, "That file is over 25 MB. Contracts up to ~100 pages are supported.")
             out.write(chunk)
+            content += chunk
     meta = {
         "counterparty": counterparty, "country": country, "direction": direction, "doc_type": doc_type, "value": value,
         "parent_id": parent_id or None, "primary": primary, "secondary": secondary or None, "uploader": user, "filename": name,
         "status": "Awaiting review", "received": db.stamp(),
     }
-    conn.execute("UPDATE uploads SET meta = ? WHERE contract_id = ?", (json.dumps(meta), cid))
+    # The file's bytes go in the database too: a hosted server's disk doesn't survive restarts.
+    conn.execute("UPDATE uploads SET meta = ?, content = ? WHERE contract_id = ?", (json.dumps(meta), bytes(content), cid))
     job_id = uuid.uuid4().hex[:12]
     conn.execute("INSERT INTO jobs VALUES (?, ?, 0, ?, 'running', NULL)", (job_id, cid, STEPS))
     conn.commit()
@@ -504,8 +510,9 @@ def confirm_details(cid: str, body: DetailsBody, user: str = Depends(get_user), 
 def rerun(cid: str, background: BackgroundTasks, user: str = Depends(get_user), conn=Depends(get_conn)):
     c = load_visible(conn, cid, user)
     require_approver(conn, c, user)
-    up = conn.execute("SELECT * FROM uploads WHERE contract_id = ?", (cid,)).fetchone()
-    if not up:
+    up = conn.execute("SELECT meta FROM uploads WHERE contract_id = ?", (cid,)).fetchone()
+    path = db.upload_file(conn, cid)
+    if not up or not up["meta"] or path is None or not path.exists():
         # Seed contracts have no stored file — record the engine version only.
         c["audit"].update(rulesVersion=CURRENT_RULES, completedAt=db.stamp())
         db.put_json(conn, "contracts", c)
@@ -521,7 +528,7 @@ def rerun(cid: str, background: BackgroundTasks, user: str = Depends(get_user), 
         # Analyse with the human-confirmed details, and keep them on the new review.
         meta.update(country=c["country"], doc_type=c["docType"])
         keep.update({k: c[k] for k in ("docType", "atliqRole", "entity", "country", "detailsCheckedBy") if k in c})
-    background.add_task(_run_job, job_id, cid, up["path"], meta, keep)
+    background.add_task(_run_job, job_id, cid, str(path), meta, keep)
     return {"jobId": job_id, "contractId": cid}
 
 

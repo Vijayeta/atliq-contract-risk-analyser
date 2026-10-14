@@ -137,10 +137,8 @@ def build() -> dict:
     prec = json.loads((CURATED / "precedents.json").read_text(encoding="utf-8"))
 
     tmp = Path(tempfile.mkdtemp()) / "build.db"
-    old = db.DB_PATH
-    db.DB_PATH = tmp
-    conn = db.connect()
-    conn.executescript(db.SCHEMA)
+    conn = db.connect(sqlite_path=tmp)  # always a throwaway SQLite file, even when DATABASE_URL is set
+    db.create_schema(conn)
     register = []
     for o in reg["obligations"]:
         o = dict(o)
@@ -154,7 +152,7 @@ def build() -> dict:
     for p in prec["precedents"]:
         db.put_json(conn, "precedents", p)
     for h in prec["history"]:
-        conn.execute("INSERT INTO counterparty_events VALUES (?, ?, ?, ?, ?)", (db.party_key(h["counterparty"]), h["date"], h["kind"], h["detail"], h["source"]))
+        db.add_history(conn, h)
     conn.commit()
 
     texts = {f: (DATASET / f).read_text(encoding="utf-8") for f in FILES}
@@ -189,7 +187,6 @@ def build() -> dict:
             audit.append({"at": "28 Sep 2026, 09:00", "actor": "System", "action": "Review generated",
                           "detail": f"{cid} {c['name']}: {len(c['findings'])} findings, {sum(x['prior']['status'] == 'active' for x in c['conflicts'])} live conflicts. {c['audit']['model']}.", "kind": "ai"})
     conn.close()
-    db.DB_PATH = old
 
     dq = data_quality(rows, register)
     audit.append({"at": "28 Sep 2026, 08:55", "actor": "System", "action": "Tracker checked", "detail": f"{len(dq)} data-quality issues found in contract_tracker.csv (see Audit log).", "kind": "system"})
