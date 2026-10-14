@@ -1,8 +1,14 @@
 import json
+from datetime import date, timedelta
 
 from app import db
 
 from conftest import INCOMING, as_user
+
+
+def soon(days: int = 30) -> str:
+    """A delegation expiry inside the one-year limit, in the app's date format."""
+    return (date.today() + timedelta(days=days)).strftime("%d %b %Y")
 
 
 def test_seed_loads_the_dataset(client):
@@ -31,7 +37,7 @@ def test_ready_to_sign_blocked_by_gates(client):
 
 def test_delegate_can_decide_but_not_sign(client):
     assert client.patch("/api/contracts/C-038/findings/F-1", json={"decision": "accepted"}, headers=as_user("jay")).status_code in (403, 404)
-    client.post("/api/delegations", json={"to": "jay", "scope": ["C-038"], "expires": "30 Oct 2030"}, headers=as_user("kd"))
+    client.post("/api/delegations", json={"to": "jay", "scope": ["C-038"], "expires": soon()}, headers=as_user("kd"))
     r = client.post("/api/contracts/C-038/status", json={"status": "Ready to sign"}, headers=as_user("jay"))
     assert r.status_code == 200  # LoopMart NDA is clean
     assert client.post("/api/contracts/C-038/status", json={"status": "Signed"}, headers=as_user("jay")).status_code == 403
@@ -47,6 +53,7 @@ def test_reviewer_marks_and_feedback(client):
 
 
 def test_pending_precedent_needs_kd(client):
+    client.patch("/api/contracts/C-023/findings/F-2", json={"decision": "accepted"}, headers=as_user("kd"))
     p = client.post("/api/pending-precedents", json={"contractId": "C-023", "findingId": "F-2", "label": "standard"}, headers=as_user("kd")).json()
     assert p["status"] == "pending"
     assert client.post(f"/api/pending-precedents/{p['id']}/approve", headers=as_user("jay")).status_code == 403
@@ -75,7 +82,7 @@ def test_upload_rejects_unsupported_type(client):
 
 
 def test_only_kd_delegates(client):
-    body = {"to": "jay", "scope": "all-routine", "expires": "30 Oct 2030"}
+    body = {"to": "jay", "scope": "all-routine", "expires": soon()}
     assert client.post("/api/delegations", json=body, headers=as_user("bhavin")).status_code == 403
     ds = client.post("/api/delegations", json=body, headers=as_user("kd")).json()
     assert any(d["to"] == "jay" and d["active"] for d in ds)
@@ -131,9 +138,11 @@ def test_delegation_expiry_is_validated(client):
 
     assert delegate("not a date").status_code == 422
     assert delegate("01 Jan 2020").status_code == 422
-    assert delegate("01 Jan 2030", scope=[]).status_code == 422
-    assert delegate("01 Jan 2030", scope=["C-999"]).status_code == 422
-    assert delegate("05 Sept 2030").status_code == 200  # browsers' en-GB month for September
+    assert delegate(soon(), scope=[]).status_code == 422
+    assert delegate(soon(), scope=["C-999"]).status_code == 422
+    sept = date(date.today().year + (date.today().month >= 9), 9, 5)
+    r = delegate(f"05 Sept {sept.year}")  # browsers' en-GB month for September
+    assert r.status_code == 200 and r.json()[0]["expires"] == f"05 Sep {sept.year}"  # stored in one spelling
 
 
 def test_unreadable_delegation_expiry_is_inactive():
@@ -208,3 +217,86 @@ def test_garbled_text_is_unreadable_not_judged():
     text = "This Agreement is made between AtliQ Technologies Pvt Ltd and the Client for services. " * 3
     assert Page(1, text).readable
     assert not Page(1, text.encode("utf-16").decode("utf-8", errors="replace")).readable
+
+
+def test_delegation_limits(client):
+    def delegate(to, expires, scope="all-routine"):
+        return client.post("/api/delegations", json={"to": to, "scope": scope, "expires": expires}, headers=as_user("kd"))
+
+    assert delegate("jay", soon(400)).status_code == 422  # more than a year
+    assert delegate("jay", soon()).status_code == 200
+    r = delegate("jay", soon(60))
+    assert r.status_code == 409 and "Revoke it first" in r.json()["detail"]  # one active delegation per person
+    r = delegate("bhavin", soon(), scope=["C-023"])  # Harrington is Dhaval's; Bhavin can't open it
+    assert r.status_code == 422 and "isn't a reviewer" in r.json()["detail"]
+
+
+def test_precedents_need_a_decision_and_are_saved_once(client):
+    body = {"contractId": "C-023", "findingId": "F-3", "label": "standard"}
+    assert client.post("/api/pending-precedents", json=body, headers=as_user("kd")).status_code == 409  # undecided
+    client.patch("/api/contracts/C-023/findings/F-3", json={"decision": "accepted"}, headers=as_user("kd"))
+    p = client.post("/api/pending-precedents", json=body, headers=as_user("kd")).json()
+    assert client.post("/api/pending-precedents", json=body, headers=as_user("kd")).status_code == 409  # already saved
+    before = len(client.get("/api/precedents").json())
+    assert client.post(f"/api/pending-precedents/{p['id']}/approve", headers=as_user("kd")).status_code == 200
+    assert client.post(f"/api/pending-precedents/{p['id']}/approve", headers=as_user("kd")).status_code == 409
+    assert len(client.get("/api/precedents").json()) == before + 1
+
+
+def test_audit_log_hides_contracts_the_user_cannot_open(client):
+    client.get("/api/contracts/C-023", headers=as_user("kd"))  # writes an audit entry about Harrington
+    visible = {c["id"] for c in client.get("/api/bootstrap", headers=as_user("bhavin")).json()["contracts"]}
+    for audit in (client.get("/api/bootstrap", headers=as_user("bhavin")).json()["audit"], client.get("/api/audit", headers=as_user("bhavin")).json()):
+        mentioned = {cid for a in audit for cid in __import__("re").findall(r"\bC-\d+\b", a.get("detail") or "")}
+        assert mentioned <= visible
+    assert any("C-023" in (a.get("detail") or "") for a in client.get("/api/audit", headers=as_user("kd")).json())
+
+
+def test_upload_job_is_private_and_errors_hide_paths(client):
+    r = _upload(client, "broken.docx", b"not a word file")
+    assert client.get(f"/api/jobs/{r['jobId']}", headers=as_user("jay")).status_code == 404
+    job = client.get(f"/api/jobs/{r['jobId']}", headers=as_user("kd")).json()
+    assert job["status"] == "error" and ":\\" not in job["error"] and "/" not in job["error"].replace("password-protected", "")
+
+
+def test_upload_requires_counterparty_and_country(client):
+    for fields in ({"counterparty": "   "}, {"country": "  "}):
+        r = client.post("/api/contracts", files={"file": ("a.md", b"x", "text/markdown")},
+                        data={"counterparty": "X", "country": "India", **fields}, headers=as_user("kd"))
+        assert r.status_code == 422
+
+
+def test_revised_draft_links_to_the_review_it_replaces(client):
+    nda = (INCOMING / "2026-09-27_loopmart_mutual_nda_draft.md").read_bytes()
+    first = _upload(client, "v1.md", nda, counterparty="LoopMart")["contractId"]
+    second = _upload(client, "v2.md", nda, counterparty="LoopMart", parent_id=first)["contractId"]
+    fam = client.get(f"/api/contracts/{second}").json()["family"]
+    assert fam["parent"]["id"] == first and fam["relation"].startswith("Revised draft")
+    r = client.post("/api/contracts", files={"file": ("v3.md", nda, "text/markdown")},
+                    data={"counterparty": "LoopMart", "country": "India", "parent_id": "C-023"}, headers=as_user("jay"))
+    assert r.status_code == 422  # Jay can't see C-023
+
+
+def test_rejected_contract_is_read_only_until_reopened(client):
+    client.post("/api/contracts/C-023/status", json={"status": "Rejected"}, headers=as_user("kd"))
+    assert client.patch("/api/contracts/C-023/findings/F-1", json={"decision": "accepted"}, headers=as_user("kd")).status_code == 409
+    assert client.post("/api/contracts/C-023/details", json={"country": "UAE"}, headers=as_user("kd")).status_code == 409
+    assert client.post("/api/contracts/C-023/status", json={"status": "Awaiting review"}, headers=as_user("kd")).status_code == 200
+    assert client.patch("/api/contracts/C-023/findings/F-1", json={"decision": "accepted"}, headers=as_user("kd")).status_code == 200
+
+
+def test_free_text_is_trimmed_checked_and_capped(client):
+    patch = lambda body, u="kd": client.patch("/api/contracts/C-023/findings/F-1", json=body, headers=as_user(u))  # noqa: E731
+    f = next(x for x in patch({"editedFallback": "   "}).json()["findings"] if x["id"] == "F-1")
+    assert "editedFallback" not in f  # blank wording clears the edit instead of saving spaces
+    assert patch({"mark": {"verdict": "comment", "comment": "  "}}, "dhaval").status_code == 422
+    assert patch({"mark": {"verdict": "regrade"}}, "dhaval").status_code == 422
+    assert patch({"editedFallback": "x" * 10001}).status_code == 422
+    assert client.post("/api/contracts/C-023/status", json={"status": "In negotiation", "note": "x" * 2001}, headers=as_user("kd")).status_code == 422
+
+
+def test_search_finds_short_terms_and_hyphen_variants(client):
+    assert client.get("/api/precedents?q=IP").json(), "two-letter topics like IP must be searchable"
+    joined = {o["id"] for o in client.get("/api/obligations?q=noncompete").json()}
+    assert joined and joined <= {o["id"] for o in client.get("/api/obligations?q=non-compete").json()}
+    assert all("non-compete" in o["clauseType"].lower() for o in client.get("/api/obligations?q=noncompete").json())

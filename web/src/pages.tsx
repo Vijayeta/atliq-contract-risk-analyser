@@ -474,7 +474,8 @@ export function Team({
   const isKD = user === 'kd'
   const [to, setTo] = useState<UserId>('dhaval')
   const [scope, setScope] = useState<string>('all-routine')
-  const [expires, setExpires] = useState('2026-10-24')
+  const [expires, setExpires] = useState(() => isoDay(new Date(Date.now() + 14 * 86_400_000)))
+  const [range] = useState(() => ({ min: isoDay(new Date()), max: isoDay(new Date(Date.now() + 365 * 86_400_000)) }))
   const open = data.filter((c) => !['Signed', 'Rejected'].includes(c.status))
   const activeD = delegations.filter((d) => d.active)
   const past = delegations.filter((d) => !d.active)
@@ -526,7 +527,7 @@ export function Team({
                   to,
                   scope: scope === 'all-routine' ? 'all-routine' : [scope],
                   rights: 'Review and approval',
-                  expires: new Date(expires).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+                  expires: pickerToDay(expires),
                 })
               }}
             >
@@ -552,7 +553,7 @@ export function Team({
                 </select>
               </LabelledInput>
               <LabelledInput label="Until">
-                <input type="date" value={expires} onChange={(e) => setExpires(e.target.value)} className={inputCls} required />
+                <input type="date" value={expires} min={range.min} max={range.max} onChange={(e) => setExpires(e.target.value)} className={inputCls} required />
               </LabelledInput>
               <Button type="submit" variant="primary" className="w-full">
                 Delegate
@@ -589,6 +590,19 @@ export function Team({
       </Card>
     </div>
   )
+}
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+/** A local date as the picker's "2027-09-05". */
+function isoDay(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+/** "2027-09-05" → "05 Sep 2027", read as written: no time zone involved. */
+function pickerToDay(v: string) {
+  const [y, m, d] = v.split('-').map(Number)
+  return `${String(d).padStart(2, '0')} ${MONTHS[m - 1]} ${y}`
 }
 
 /* ------------------------------- Submit ------------------------------ */
@@ -742,6 +756,7 @@ export function Submit({
             fd.set('direction', direction)
             fd.set('doc_type', docType)
             fd.set('primary', user)
+            if (prefill) fd.set('parent_id', prefill.fromId)
             setBusy(true)
             setServerError('')
             try {
@@ -872,10 +887,10 @@ export function Submit({
 
           <div className="grid gap-4 sm:grid-cols-2">
             <LabelledInput label="Counterparty">
-              <input name="counterparty" className={inputCls} placeholder="e.g. Northwind Health Inc." defaultValue={prefill?.counterparty} required />
+              <input name="counterparty" className={inputCls} placeholder="e.g. Northwind Health Inc." defaultValue={prefill?.counterparty} required pattern=".*\S.*" title="Enter the counterparty" />
             </LabelledInput>
             <LabelledInput label="Their country">
-              <input name="country" className={inputCls} placeholder="e.g. United States" defaultValue={prefill?.country} required />
+              <input name="country" className={inputCls} placeholder="e.g. United States" defaultValue={prefill?.country} required pattern=".*\S.*" title="Enter their country" />
             </LabelledInput>
             <LabelledInput label="Document type">
               <select ref={typeRef} className={inputCls} value={docType} onChange={(e) => setDocType(e.target.value)}>

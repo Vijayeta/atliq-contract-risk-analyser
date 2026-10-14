@@ -374,7 +374,7 @@
     "rulesVersion": "rules-v3.0",
     "sourcesUsed": 45,
     "overallConfidence": 0.8,
-    "completedAt": "12 Oct 2026, 10:29",
+    "completedAt": "14 Oct 2026, 10:42",
     "durationSeconds": 1
    }
   },
@@ -570,7 +570,7 @@
     "rulesVersion": "rules-v3.0",
     "sourcesUsed": 44,
     "overallConfidence": 0.75,
-    "completedAt": "12 Oct 2026, 10:29",
+    "completedAt": "14 Oct 2026, 10:42",
     "durationSeconds": 1
    }
   },
@@ -752,7 +752,7 @@
     "rulesVersion": "rules-v3.0",
     "sourcesUsed": 43,
     "overallConfidence": 0.9,
-    "completedAt": "12 Oct 2026, 10:29",
+    "completedAt": "14 Oct 2026, 10:42",
     "durationSeconds": 1
    }
   },
@@ -1234,17 +1234,17 @@
      "recommendedAction": "negotiate",
      "precedents": [
       {
-       "contract": "Trustline MSA",
-       "counterparty": "Trustline NBFC",
-       "date": "15 Aug 2026",
-       "outcome": "45 days",
-       "label": "standard"
+       "contract": "Northwind MSA",
+       "counterparty": "Northwind Logistics",
+       "date": "20 Jun 2025",
+       "outcome": "Accepted: 'not worth losing the deal over'; IP and boilerplate only skimmed",
+       "label": "exception"
       },
       {
-       "contract": "Al Noor MSA §21",
-       "counterparty": "Al Noor Hospitality",
-       "date": "15 Mar 2025",
-       "outcome": "Accepted ('group standard for all technology vendors')",
+       "contract": "Rohan Iyer contractor agreement",
+       "counterparty": "Rohan Iyer",
+       "date": "28 Apr 2025",
+       "outcome": "Accepted ('ok' from a phone)",
        "label": "exception"
       }
      ],
@@ -1413,7 +1413,7 @@
     "rulesVersion": "rules-v3.0",
     "sourcesUsed": 61,
     "overallConfidence": 0.85,
-    "completedAt": "12 Oct 2026, 10:29",
+    "completedAt": "14 Oct 2026, 10:42",
     "durationSeconds": 1
    }
   },
@@ -1903,17 +1903,17 @@
      "recommendedAction": "negotiate",
      "precedents": [
       {
-       "contract": "Trustline MSA",
-       "counterparty": "Trustline NBFC",
-       "date": "15 Aug 2026",
-       "outcome": "45 days",
-       "label": "standard"
+       "contract": "Northwind MSA",
+       "counterparty": "Northwind Logistics",
+       "date": "20 Jun 2025",
+       "outcome": "Accepted: 'not worth losing the deal over'; IP and boilerplate only skimmed",
+       "label": "exception"
       },
       {
-       "contract": "Al Noor MSA §21",
-       "counterparty": "Al Noor Hospitality",
-       "date": "15 Mar 2025",
-       "outcome": "Accepted ('group standard for all technology vendors')",
+       "contract": "Rohan Iyer contractor agreement",
+       "counterparty": "Rohan Iyer",
+       "date": "28 Apr 2025",
+       "outcome": "Accepted ('ok' from a phone)",
        "label": "exception"
       }
      ],
@@ -2186,7 +2186,7 @@
     "rulesVersion": "rules-v3.0",
     "sourcesUsed": 58,
     "overallConfidence": 0.88,
-    "completedAt": "12 Oct 2026, 10:29",
+    "completedAt": "14 Oct 2026, 10:42",
     "durationSeconds": 1
    }
   },
@@ -2740,7 +2740,7 @@
     "rulesVersion": "rules-v3.0",
     "sourcesUsed": 55,
     "overallConfidence": 0.86,
-    "completedAt": "12 Oct 2026, 10:29",
+    "completedAt": "14 Oct 2026, 10:42",
     "durationSeconds": 1
    }
   },
@@ -3589,7 +3589,7 @@
     "rulesVersion": "rules-v3.0",
     "sourcesUsed": 58,
     "overallConfidence": 0.89,
-    "completedAt": "12 Oct 2026, 10:29",
+    "completedAt": "14 Oct 2026, 10:42",
     "durationSeconds": 1
    }
   },
@@ -3809,7 +3809,7 @@
     "rulesVersion": "rules-v3.0",
     "sourcesUsed": 43,
     "overallConfidence": 0.9,
-    "completedAt": "12 Oct 2026, 10:29",
+    "completedAt": "14 Oct 2026, 10:42",
     "durationSeconds": 1
    }
   },
@@ -4202,7 +4202,22 @@
      },
      "confidence": 0.9,
      "recommendedAction": "escalate-to-counsel",
-     "precedents": [],
+     "precedents": [
+      {
+       "contract": "Rohan Iyer contractor agreement",
+       "counterparty": "Rohan Iyer",
+       "date": "28 Apr 2025",
+       "outcome": "Accepted ('ok' from a phone)",
+       "label": "exception"
+      },
+      {
+       "contract": "Northwind MSA",
+       "counterparty": "Northwind Logistics",
+       "date": "20 Jun 2025",
+       "outcome": "Accepted: 'not worth losing the deal over'; IP and boilerplate only skimmed",
+       "label": "exception"
+      }
+     ],
      "marks": [],
      "decision": "pending",
      "drivers": [
@@ -4225,17 +4240,17 @@
      "recommendedAction": "negotiate",
      "precedents": [
       {
-       "contract": "Trustline MSA",
-       "counterparty": "Trustline NBFC",
-       "date": "15 Aug 2026",
-       "outcome": "45 days",
-       "label": "standard"
+       "contract": "Northwind MSA",
+       "counterparty": "Northwind Logistics",
+       "date": "20 Jun 2025",
+       "outcome": "Accepted: 'not worth losing the deal over'; IP and boilerplate only skimmed",
+       "label": "exception"
       },
       {
-       "contract": "Al Noor MSA §21",
-       "counterparty": "Al Noor Hospitality",
-       "date": "15 Mar 2025",
-       "outcome": "Accepted ('group standard for all technology vendors')",
+       "contract": "Rohan Iyer contractor agreement",
+       "counterparty": "Rohan Iyer",
+       "date": "28 Apr 2025",
+       "outcome": "Accepted ('ok' from a phone)",
        "label": "exception"
       }
      ],
@@ -4352,9 +4367,9 @@
     "model": "rules-engine v2 (no AI key set)",
     "promptVersion": "p-2026.10.08",
     "rulesVersion": "rules-v3.0",
-    "sourcesUsed": 47,
+    "sourcesUsed": 49,
     "overallConfidence": 0.87,
-    "completedAt": "12 Oct 2026, 10:29",
+    "completedAt": "14 Oct 2026, 10:42",
     "durationSeconds": 1
    }
   },
@@ -4777,7 +4792,7 @@
     "rulesVersion": "rules-v3.0",
     "sourcesUsed": 43,
     "overallConfidence": 0.9,
-    "completedAt": "12 Oct 2026, 10:29",
+    "completedAt": "14 Oct 2026, 10:42",
     "durationSeconds": 1
    }
   },
@@ -5266,7 +5281,7 @@
     "rulesVersion": "rules-v3.0",
     "sourcesUsed": 45,
     "overallConfidence": 0.85,
-    "completedAt": "12 Oct 2026, 10:29",
+    "completedAt": "14 Oct 2026, 10:42",
     "durationSeconds": 1
    }
   },
@@ -6085,7 +6100,7 @@
     "rulesVersion": "rules-v3.0",
     "sourcesUsed": 60,
     "overallConfidence": 0.88,
-    "completedAt": "12 Oct 2026, 10:29",
+    "completedAt": "14 Oct 2026, 10:42",
     "durationSeconds": 1
    }
   },
@@ -6763,7 +6778,7 @@
     "rulesVersion": "rules-v3.0",
     "sourcesUsed": 50,
     "overallConfidence": 0.87,
-    "completedAt": "12 Oct 2026, 10:29",
+    "completedAt": "14 Oct 2026, 10:42",
     "durationSeconds": 1
    }
   },
@@ -7245,7 +7260,7 @@
     "rulesVersion": "rules-v3.0",
     "sourcesUsed": 47,
     "overallConfidence": 0.91,
-    "completedAt": "12 Oct 2026, 10:29",
+    "completedAt": "14 Oct 2026, 10:42",
     "durationSeconds": 1
    }
   },
@@ -7935,7 +7950,22 @@
      },
      "confidence": 0.88,
      "recommendedAction": "negotiate",
-     "precedents": [],
+     "precedents": [
+      {
+       "contract": "Rohan Iyer contractor agreement",
+       "counterparty": "Rohan Iyer",
+       "date": "28 Apr 2025",
+       "outcome": "Accepted ('ok' from a phone)",
+       "label": "exception"
+      },
+      {
+       "contract": "Northwind MSA",
+       "counterparty": "Northwind Logistics",
+       "date": "20 Jun 2025",
+       "outcome": "Accepted: 'not worth losing the deal over'; IP and boilerplate only skimmed",
+       "label": "exception"
+      }
+     ],
      "marks": [],
      "decision": "pending",
      "drivers": [
@@ -8321,9 +8351,9 @@
     "model": "rules-engine v2 (no AI key set)",
     "promptVersion": "p-2026.10.08",
     "rulesVersion": "rules-v3.0",
-    "sourcesUsed": 61,
+    "sourcesUsed": 63,
     "overallConfidence": 0.88,
-    "completedAt": "12 Oct 2026, 10:29",
+    "completedAt": "14 Oct 2026, 10:42",
     "durationSeconds": 1
    }
   },
@@ -8505,7 +8535,7 @@
     "rulesVersion": "rules-v3.0",
     "sourcesUsed": 43,
     "overallConfidence": 0.9,
-    "completedAt": "12 Oct 2026, 10:29",
+    "completedAt": "14 Oct 2026, 10:42",
     "durationSeconds": 1
    }
   },
@@ -8871,7 +8901,7 @@
     "rulesVersion": "rules-v3.0",
     "sourcesUsed": 44,
     "overallConfidence": 0.82,
-    "completedAt": "12 Oct 2026, 10:29",
+    "completedAt": "14 Oct 2026, 10:42",
     "durationSeconds": 1
    }
   },
@@ -9046,7 +9076,7 @@
     "rulesVersion": "rules-v3.0",
     "sourcesUsed": 43,
     "overallConfidence": 0.9,
-    "completedAt": "12 Oct 2026, 10:29",
+    "completedAt": "14 Oct 2026, 10:42",
     "durationSeconds": 1
    }
   },
@@ -9199,7 +9229,7 @@
     "rulesVersion": "rules-v3.0",
     "sourcesUsed": 45,
     "overallConfidence": 0.9,
-    "completedAt": "12 Oct 2026, 10:29",
+    "completedAt": "14 Oct 2026, 10:42",
     "durationSeconds": 1
    }
   },
@@ -9687,7 +9717,7 @@
     "rulesVersion": "rules-v3.0",
     "sourcesUsed": 48,
     "overallConfidence": 0.89,
-    "completedAt": "12 Oct 2026, 10:29",
+    "completedAt": "14 Oct 2026, 10:42",
     "durationSeconds": 1
    }
   },
@@ -9911,7 +9941,7 @@
     "rulesVersion": "rules-v3.0",
     "sourcesUsed": 43,
     "overallConfidence": 0.9,
-    "completedAt": "12 Oct 2026, 10:29",
+    "completedAt": "14 Oct 2026, 10:42",
     "durationSeconds": 1
    }
   },
@@ -10274,7 +10304,7 @@
     "rulesVersion": "rules-v3.0",
     "sourcesUsed": 44,
     "overallConfidence": 0.88,
-    "completedAt": "12 Oct 2026, 10:29",
+    "completedAt": "14 Oct 2026, 10:42",
     "durationSeconds": 1
    }
   },
@@ -10779,7 +10809,7 @@
     "rulesVersion": "rules-v3.0",
     "sourcesUsed": 45,
     "overallConfidence": 0.9,
-    "completedAt": "12 Oct 2026, 10:29",
+    "completedAt": "14 Oct 2026, 10:42",
     "durationSeconds": 1
    }
   },
@@ -11214,7 +11244,22 @@
      },
      "confidence": 0.88,
      "recommendedAction": "negotiate",
-     "precedents": [],
+     "precedents": [
+      {
+       "contract": "Rohan Iyer contractor agreement",
+       "counterparty": "Rohan Iyer",
+       "date": "28 Apr 2025",
+       "outcome": "Accepted ('ok' from a phone)",
+       "label": "exception"
+      },
+      {
+       "contract": "Northwind MSA",
+       "counterparty": "Northwind Logistics",
+       "date": "20 Jun 2025",
+       "outcome": "Accepted: 'not worth losing the deal over'; IP and boilerplate only skimmed",
+       "label": "exception"
+      }
+     ],
      "marks": [],
      "decision": "pending",
      "drivers": [
@@ -11350,9 +11395,9 @@
     "model": "rules-engine v2 (no AI key set)",
     "promptVersion": "p-2026.10.08",
     "rulesVersion": "rules-v3.0",
-    "sourcesUsed": 47,
+    "sourcesUsed": 49,
     "overallConfidence": 0.89,
-    "completedAt": "12 Oct 2026, 10:29",
+    "completedAt": "14 Oct 2026, 10:42",
     "durationSeconds": 1
    }
   },
@@ -11623,7 +11668,7 @@
     "rulesVersion": "rules-v3.0",
     "sourcesUsed": 43,
     "overallConfidence": 0.9,
-    "completedAt": "12 Oct 2026, 10:29",
+    "completedAt": "14 Oct 2026, 10:42",
     "durationSeconds": 1
    }
   },
@@ -11978,7 +12023,7 @@
     "rulesVersion": "rules-v3.0",
     "sourcesUsed": 43,
     "overallConfidence": 0.9,
-    "completedAt": "12 Oct 2026, 10:29",
+    "completedAt": "14 Oct 2026, 10:42",
     "durationSeconds": 1
    }
   },
@@ -12297,7 +12342,7 @@
     "rulesVersion": "rules-v3.0",
     "sourcesUsed": 43,
     "overallConfidence": 0.9,
-    "completedAt": "12 Oct 2026, 10:29",
+    "completedAt": "14 Oct 2026, 10:42",
     "durationSeconds": 1
    }
   },
@@ -12975,7 +13020,7 @@
     "rulesVersion": "rules-v3.0",
     "sourcesUsed": 49,
     "overallConfidence": 0.9,
-    "completedAt": "12 Oct 2026, 10:29",
+    "completedAt": "14 Oct 2026, 10:42",
     "durationSeconds": 1
    }
   },
@@ -13169,7 +13214,7 @@
     "rulesVersion": "rules-v3.0",
     "sourcesUsed": 43,
     "overallConfidence": 0.9,
-    "completedAt": "12 Oct 2026, 10:29",
+    "completedAt": "14 Oct 2026, 10:42",
     "durationSeconds": 1
    }
   },
@@ -13506,7 +13551,7 @@
     "rulesVersion": "rules-v3.0",
     "sourcesUsed": 43,
     "overallConfidence": 0.9,
-    "completedAt": "12 Oct 2026, 10:29",
+    "completedAt": "14 Oct 2026, 10:42",
     "durationSeconds": 1
    }
   },
@@ -13962,7 +14007,7 @@
     "rulesVersion": "rules-v3.0",
     "sourcesUsed": 45,
     "overallConfidence": 0.84,
-    "completedAt": "12 Oct 2026, 10:29",
+    "completedAt": "14 Oct 2026, 10:42",
     "durationSeconds": 1
    }
   },
@@ -14142,7 +14187,7 @@
     "rulesVersion": "rules-v3.0",
     "sourcesUsed": 43,
     "overallConfidence": 0.9,
-    "completedAt": "12 Oct 2026, 10:29",
+    "completedAt": "14 Oct 2026, 10:42",
     "durationSeconds": 1
    }
   }

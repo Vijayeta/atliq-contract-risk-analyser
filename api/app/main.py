@@ -11,15 +11,17 @@ import logging
 import shutil
 import uuid
 from contextlib import asynccontextmanager
-from datetime import date
-from typing import Literal
+import re
+from datetime import date, timedelta
+from pathlib import Path
+from typing import Annotated, Literal
 
 from fastapi import BackgroundTasks, Depends, FastAPI, File, Form, Header, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, StringConstraints, model_validator
 
 from . import db
-from .access import USERS, approver_of, block_reasons, can_approve, parse_day, reviewer_role, visible_to
+from .access import USERS, approver_of, block_reasons, can_approve, delegation_active, parse_day, reviewer_role, visible_to
 from .company import parse_usd
 from .pipeline import llm_engine
 from .pipeline.parse import SUPPORTED, UnsupportedFile
@@ -43,6 +45,9 @@ app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:5173"], allo
 MAX_BYTES = 25 * 1024 * 1024
 Severity = Literal["high", "medium", "low", "unknown"]
 Decision = Literal["pending", "accepted", "modified", "rejected", "escalated"]
+# Free text from people: trimmed, and capped so one request can't bloat a contract record.
+ShortText = Annotated[str, StringConstraints(strip_whitespace=True, max_length=2000)]
+LongText = Annotated[str, StringConstraints(strip_whitespace=True, max_length=10000)]
 Status = Literal["Awaiting review", "In negotiation", "Internal confirmation", "With counsel", "Ready to sign", "Signed", "Rejected"]
 
 
@@ -77,14 +82,30 @@ def delegations(conn) -> list[dict]:
 
 
 def require_editable(c: dict) -> None:
+    """Signed contracts are read-only for good; rejected ones until someone reopens them."""
     if c["status"] == "Signed":
         raise HTTPException(409, "This contract is signed and read-only")
+    if c["status"] == "Rejected":
+        raise HTTPException(409, "This contract was rejected. Reopen it to make changes")
 
 
 def require_approver(conn, c: dict, user: str) -> None:
     if not can_approve(c, user, delegations(conn)):
         raise HTTPException(403, f"Only {USERS[approver_of(c, delegations(conn))]['name']} can decide on this contract")
-    require_editable(c)
+    if c["status"] == "Signed":
+        raise HTTPException(409, "This contract is signed and read-only")
+
+
+CONTRACT_ID = re.compile(r"\bC-\d+\b")
+
+
+def audit_for(conn, user: str) -> list[dict]:
+    """The audit log, minus entries about contracts this user can't open (they'd leak names and findings)."""
+    entries = db.list_audit(conn)
+    if USERS[user]["superAdmin"]:
+        return entries
+    visible = {c["id"] for c in db.list_json(conn, "contracts") if visible_to(c, user)}
+    return [a for a in entries if all(cid in visible for cid in CONTRACT_ID.findall(a.get("detail") or ""))]
 
 
 # ----------------------------- read -----------------------------
@@ -106,7 +127,7 @@ def bootstrap(user: str = Depends(get_user), conn=Depends(get_conn)):
         "obligations": db.list_json(conn, "obligations"),
         "precedents": db.list_json(conn, "precedents"),
         "pending": db.list_json(conn, "pending_precedents"),
-        "audit": db.list_audit(conn),
+        "audit": audit_for(conn, user),
         "ai": "claude" if llm_engine.enabled() else "rules",
         "asOf": db.get_meta(conn, "asOf"),
         "dataQuality": db.get_meta(conn, "dataQuality") or [],
@@ -143,8 +164,8 @@ def precedents(q: str | None = None, label: str | None = None, conn=Depends(get_
 
 
 @app.get("/api/audit")
-def audit(kind: str | None = None, conn=Depends(get_conn)):
-    return [a for a in db.list_audit(conn) if not kind or a["kind"] == kind]
+def audit(kind: str | None = None, user: str = Depends(get_user), conn=Depends(get_conn)):
+    return [a for a in audit_for(conn, user) if not kind or a["kind"] == kind]
 
 
 # ----------------------------- upload + jobs -----------------------------
@@ -185,7 +206,8 @@ def _run_job(job_id: str, cid: str, path: str, meta: dict, keep: dict | None = N
         _set_job(conn, job_id, status="error", error=str(e))
     except Exception as e:  # keep the job visible as failed rather than silently dropped (NFR reliability)
         log.exception("job %s failed", job_id)
-        _set_job(conn, job_id, status="error", error=f"Analysis failed: {e}")
+        kind = Path(path).suffix.lstrip(".").upper() or "contract"
+        _set_job(conn, job_id, status="error", error=f"The file couldn't be read. It may be damaged, password-protected or not really a {kind} file.")
     finally:
         conn.close()
 
@@ -210,6 +232,15 @@ async def upload(
         raise HTTPException(422, f"“{name}” isn't supported. Upload a PDF, DOCX, Markdown or TXT file.")
     if primary not in USERS or (secondary and secondary not in USERS):
         raise HTTPException(422, "Unknown reviewer")
+    counterparty, country = counterparty.strip(), country.strip()
+    if not counterparty or not country:
+        raise HTTPException(422, "Enter the counterparty and their country")
+    if len(counterparty) > 200 or len(country) > 100:
+        raise HTTPException(422, "Counterparty or country is too long")
+    if parent_id:
+        prev = db.get_json(conn, "contracts", parent_id)
+        if not prev or not visible_to(prev, user):
+            raise HTTPException(422, f"Previous review {parent_id} not found")
     if value.strip() and parse_usd(value) is None:
         raise HTTPException(422, f"Couldn't read “{value.strip()}” as a US-dollar amount. Enter it like $480,000, $1.2M or $100k–150k.")
     # Reserve the ID before the first await, so a concurrent upload can't be given the same one.
@@ -243,9 +274,14 @@ async def upload(
 
 
 @app.get("/api/jobs/{job_id}")
-def job(job_id: str, conn=Depends(get_conn)):
+def job(job_id: str, user: str = Depends(get_user), conn=Depends(get_conn)):
     row = conn.execute("SELECT * FROM jobs WHERE id = ?", (job_id,)).fetchone()
     if not row:
+        raise HTTPException(404, "Job not found")
+    c = db.get_json(conn, "contracts", row["contract_id"])
+    up = conn.execute("SELECT meta FROM uploads WHERE contract_id = ?", (row["contract_id"],)).fetchone()
+    uploader = json.loads(up["meta"]).get("uploader") if up and up["meta"] else None
+    if not (USERS[user]["superAdmin"] or (c and visible_to(c, user)) or uploader == user):
         raise HTTPException(404, "Job not found")
     return {"id": row["id"], "contractId": row["contract_id"], "step": row["step"], "total": row["total"], "status": row["status"], "error": row["error"]}
 
@@ -255,19 +291,27 @@ def job(job_id: str, conn=Depends(get_conn)):
 class Mark(BaseModel):
     verdict: Literal["agree", "regrade", "comment"]
     regradeTo: Severity | None = None
-    comment: str = ""
+    comment: ShortText = ""
+
+    @model_validator(mode="after")
+    def _complete(self):
+        if self.verdict == "regrade" and not self.regradeTo:
+            raise ValueError("Say which severity it should be")
+        if self.verdict == "comment" and not self.comment:
+            raise ValueError("Write a comment")
+        return self
 
 
 class Feedback(BaseModel):
     useful: bool
-    reason: str | None = None
+    reason: ShortText | None = None
 
 
 class FindingPatch(BaseModel):
     decision: Decision | None = None
     severityOverride: Severity | None = None  # null clears; equal to the AI grade also clears
-    editedFallback: str | None = None
-    dismissReason: str | None = None  # present → "not an issue"
+    editedFallback: LongText | None = None  # blank clears the edit
+    dismissReason: ShortText | None = None  # present → "not an issue"
     feedback: Feedback | None = None  # null clears
     wordingFeedback: Literal["usable", "edited", "unusable"] | None = None
     mark: Mark | None = None
@@ -339,7 +383,7 @@ def patch_finding(cid: str, fid: str, body: FindingPatch, user: str = Depends(ge
 
 class StatusBody(BaseModel):
     status: Status
-    note: str = ""
+    note: ShortText = ""
 
 
 # Category → obligation type written to the register on signature (FR-13).
@@ -489,12 +533,24 @@ def create_delegation(body: DelegationBody, user: str = Depends(get_user), conn=
         raise HTTPException(422, f"“{body.expires}” isn't a date. Use the form 24 Oct 2026.")
     if end < date.today():
         raise HTTPException(422, "The expiry date has already passed")
+    if end > date.today() + timedelta(days=366):
+        raise HTTPException(422, "A delegation can last up to a year")
+    body.expires = end.strftime("%d %b %Y")  # one spelling everywhere ("Sep", not "Sept")
+    name = USERS[body.to]["name"]
     if body.scope != "all-routine":
+        body.scope = list(dict.fromkeys(body.scope))
         if not body.scope:
             raise HTTPException(422, "Choose at least one contract to delegate")
-        unknown = [cid for cid in body.scope if not db.get_json(conn, "contracts", cid)]
+        found = {cid: db.get_json(conn, "contracts", cid) for cid in body.scope}
+        unknown = [cid for cid, c in found.items() if not c]
         if unknown:
             raise HTTPException(422, f"Unknown contract(s): {', '.join(unknown)}")
+        unseen = [cid for cid, c in found.items() if not visible_to(c, body.to)]
+        if unseen:
+            raise HTTPException(422, f"{name} isn't a reviewer on {', '.join(unseen)}, so they couldn't open it")
+    current = next((d for d in db.list_json(conn, "delegations") if d["to"] == body.to and delegation_active(d)), None)
+    if current:
+        raise HTTPException(409, f"{name} already has an active delegation ({current['id']}, until {current['expires']}). Revoke it first")
     existing = db.list_json(conn, "delegations")
     d = {"id": f"D-{len(existing) + 7:02d}", "to": body.to, "scope": body.scope, "rights": "Review and approval",
          "created": db.today(), "expires": body.expires, "active": True}
@@ -532,6 +588,11 @@ def save_pending(body: PendingBody, user: str = Depends(get_user), conn=Depends(
     f = next((x for x in c["findings"] if x["id"] == body.findingId), None)
     if not f:
         raise HTTPException(404, "Finding not found")
+    if f["decision"] not in ("accepted", "modified"):
+        raise HTTPException(409, "Accept or edit the finding before saving its outcome")
+    key = f"{c['id']}/{f['id']}"
+    if any(p["key"] == key and p["status"] in ("pending", "approved") for p in db.list_json(conn, "pending_precedents")):
+        raise HTTPException(409, "This outcome is already saved")
     item = {
         "id": f"PP-{uuid.uuid4().hex[:6]}", "key": f"{c['id']}/{f['id']}", "clauseType": f["category"], "counterparty": c["counterparty"],
         "contract": c["name"], "outcome": (f.get("editedFallback") or f.get("suggestedFallback") or {}).get("text") or f["clauseTitle"],
@@ -553,6 +614,8 @@ def approve_pending(pid: str, user: str = Depends(get_user), conn=Depends(get_co
     p = db.get_json(conn, "pending_precedents", pid)
     if not p:
         raise HTTPException(404, "Not found")
+    if p["status"] != "pending":
+        raise HTTPException(409, "This outcome was already approved")
     p["status"] = "approved"
     db.put_json(conn, "pending_precedents", p)
     db.put_json(conn, "precedents", {

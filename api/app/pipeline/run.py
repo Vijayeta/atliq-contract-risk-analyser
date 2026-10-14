@@ -43,9 +43,14 @@ def _clients() -> list[dict]:
         return []
 
 
-def _family(conn: sqlite3.Connection, cid: str, doc_type: str, role: str, cp: str, full: str) -> dict | None:
+def _family(conn: sqlite3.Connection, cid: str, doc_type: str, role: str, cp: str, full: str, parent_id: str | None = None) -> dict | None:
     key = db.party_key(cp)
     others = [c for c in db.list_json(conn, "contracts") if c["id"] != cid]
+    # A revised draft uploaded from an earlier review ("Upload revised draft") links to that review.
+    prev = next((c for c in others if c["id"] == parent_id), None) if parent_id else None
+    if prev:
+        return {"relation": f"Revised draft of {prev['id']}", "parent": {"name": prev["name"], "signed": prev["status"], "id": prev["id"]},
+                "note": f"Replaces the draft reviewed in {prev['id']} ({prev['status'].lower()}). Compare the two reviews to see what changed."}
     same = [c for c in others if db.party_key(c["counterparty"]) == key]
     if doc_type == "SOW":
         parent = next((c for c in same if c["docType"] == "MSA"), None)
@@ -143,7 +148,7 @@ def run_review(
 
     # 3 — contract family
     step(2)
-    family = _family(conn, contract_id, det.doc_type, det.role, cp, full.lower())
+    family = _family(conn, contract_id, det.doc_type, det.role, cp, full.lower(), meta.get("parent_id"))
 
     # 4 — clause analysis (rules always; Claude when enabled)
     step(3)

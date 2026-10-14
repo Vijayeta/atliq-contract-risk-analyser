@@ -91,7 +91,9 @@ def delete_json(conn: sqlite3.Connection, table: str, id_: str) -> None:
 def _index(conn: sqlite3.Connection, table: str, obj: dict) -> None:
     fts = f"{table}_fts"
     conn.execute(f"DELETE FROM {fts} WHERE id = ?", (obj["id"],))
-    body = " ".join(str(obj.get(k, "")) for k in ("summary", "outcome", "asked", "context", "sourceContract", "contract"))
+    body = " ".join(str(obj.get(k, "")) for k in ("summary", "outcome", "asked", "context", "sourceContract", "contract", "clauseType"))
+    # Index "non-compete" also as "noncompete", so either spelling finds it.
+    body += " " + " ".join(re.findall(r"\w+(?:-\w+)+", body)).replace("-", "")
     conn.execute(
         f"INSERT INTO {fts} (id, clause_type, counterparty, body) VALUES (?, ?, ?, ?)",
         (obj["id"], obj.get("clauseType", ""), obj.get("counterparty", ""), body),
@@ -100,7 +102,9 @@ def _index(conn: sqlite3.Connection, table: str, obj: dict) -> None:
 
 def fts_search(conn: sqlite3.Connection, table: str, query: str, limit: int = 5) -> list[dict]:
     """BM25 search. `query` is free text; it is turned into an OR of quoted terms."""
-    terms = [t for t in re.findall(r"[a-z0-9]{3,}", query.lower())]
+    # Two-letter terms count: "IP", "US" and "EU" are real clause topics.
+    low = query.lower()
+    terms = re.findall(r"[a-z0-9]{2,}", low) + [h.replace("-", "") for h in re.findall(r"[a-z0-9]+(?:-[a-z0-9]+)+", low)]
     if not terms:
         return []
     q = " OR ".join(f'"{t}"' for t in dict.fromkeys(terms))
@@ -192,4 +196,13 @@ def ensure() -> None:
     exists = conn.execute("SELECT name FROM sqlite_master WHERE name = 'contracts'").fetchone()
     if not exists:
         reset(conn)
+    else:
+        reindex(conn)  # keeps search current when the indexing rules change
     conn.close()
+
+
+def reindex(conn: sqlite3.Connection) -> None:
+    for table in ("obligations", "precedents"):
+        for obj in list_json(conn, table):
+            _index(conn, table, obj)
+    conn.commit()
