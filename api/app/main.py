@@ -126,7 +126,9 @@ def audit_for(conn, user: str) -> list[dict]:
 
 @app.get("/api/health")
 def health():
-    return {"ok": True, "ai": f"claude:{llm_engine.MODEL}" if llm_engine.enabled() else "rules", "rules": CURRENT_RULES}
+    # Render sets RENDER_GIT_COMMIT, so the running version can be checked after a deploy.
+    return {"ok": True, "ai": f"claude:{llm_engine.MODEL}" if llm_engine.enabled() else "rules", "rules": CURRENT_RULES,
+            "version": os.environ.get("RENDER_GIT_COMMIT", "local")[:7]}
 
 
 @app.get("/api/bootstrap")
