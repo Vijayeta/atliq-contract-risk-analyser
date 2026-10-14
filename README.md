@@ -1,5 +1,12 @@
 # AtliQ Contract Risk Analyzer
 
+**Live demo: [atliq-contract-risk-analyser-botd.vercel.app](https://atliq-contract-risk-analyser-botd.vercel.app/)**
+
+> **Only the web app is hosted; the API is not.** The live demo runs in your browser on the sample contracts, so you can explore every review, but changes aren't saved and no new review runs. The API isn't hosted because:
+> - **It needs a lasting database and long-running jobs.** Vercel runs Python as short-lived functions, so the SQLite database would be wiped regularly, a review running after an upload would be cut off, and uploads would be capped at 4.5 MB.
+> - **Claude reviews cost money per contract.** Hosting the API publicly would put the Anthropic API key behind an open upload form, where anyone could run up charges.
+> - **This is a capstone demo kept free to run.** To try uploads and Claude reviews, run the app locally ([Quick start](#quick-start)).
+
 A contract review assistant for AtliQ Technologies. Upload a contract and it reads every clause, flags risk with the exact quote behind each finding, checks the AtliQ legal entity, and catches clashes with promises AtliQ has already signed (non-competes, best-price clauses, exclusivity). People make every decision; the app never signs, approves or sends anything.
 
 Built as a capstone demo: a FastAPI + SQLite backend and a React web app. It runs for free on a deterministic rules engine, and can add Claude for a second opinion when an Anthropic API key is set.
@@ -64,6 +71,10 @@ Each upload or re-run with Claude is a paid API call.
 | `ATLIQ_UPLOADS` | `api/uploads/` | Where uploaded contracts are stored |
 
 To reset the demo data: `curl -X POST -H "X-User: kd" localhost:8000/api/admin/reset`
+
+## Deployment
+
+The live demo is the `web/` folder deployed on Vercel (imported as a single project, Vite preset, no environment variables). Every push to `main` redeploys it. Vercel sets `VERCEL=1` during builds, and `web/vite.config.ts` uses that to build in hosted-demo mode: no calls to the API, sample data only, and a banner saying so. `.vercelignore` keeps `api/` out of the upload, so Vercel doesn't turn the Python files into serverless functions.
 
 ## Tests and evaluation
 
