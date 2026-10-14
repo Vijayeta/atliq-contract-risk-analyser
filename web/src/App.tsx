@@ -392,7 +392,7 @@ export default function App() {
         const id = `D-${String(delegations.length + 7).padStart(2, '0')}`
         const created = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
         setDelegations((ds) => [{ ...d, id, created, active: true }, ...ds])
-        log('Delegation granted', `${id}: ${users[d.to].name}, review and approval of ${scope}, expires ${d.expires}. Signature retained by KD.`, 'delegation')
+        log('Delegation granted', `${users[d.to].name}: review and approval of ${scope}, until ${d.expires}. Signature retained by KD.`, 'delegation')
         toast(`${users[d.to].name} can now approve ${scope}`)
       },
     })
@@ -413,14 +413,14 @@ export default function App() {
             .then((ds) => {
               setDelegations(ds)
               refreshAudit()
-              toast(`Delegation ${id} revoked`)
+              toast(`${users[d.to].name}'s delegation revoked`)
             })
             .catch((e: Error) => toast(e.message))
           return
         }
         setDelegations((ds) => ds.map((x) => (x.id === id ? { ...x, active: false } : x)))
-        log('Delegation revoked', id, 'delegation')
-        toast(`Delegation ${id} revoked`)
+        log('Delegation revoked', `${users[d.to].name}: approval handed back to Karandeep`, 'delegation')
+        toast(`${users[d.to].name}'s delegation revoked`)
       },
     })
   }

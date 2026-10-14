@@ -497,7 +497,7 @@ export function Team({
           )}
           {past.length > 0 && (
             <p className="mt-4 text-[13px] text-ink-400">
-              Ended: {past.map((d) => `${d.id} (${users[d.to].name}, ${d.active ? `expired ${d.expires}` : 'revoked'})`).join(', ')}
+              Ended: {past.map((d) => `${users[d.to].name} (${d.active ? `expired ${d.expires}` : 'revoked'})`).join(', ')}
             </p>
           )}
         </Card>

@@ -579,13 +579,13 @@ def create_delegation(body: DelegationBody, user: str = Depends(get_user), conn=
             raise HTTPException(422, f"{name} isn't a reviewer on {', '.join(unseen)}, so they couldn't open it")
     current = next((d for d in db.list_json(conn, "delegations") if d["to"] == body.to and delegation_active(d)), None)
     if current:
-        raise HTTPException(409, f"{name} already has an active delegation ({current['id']}, until {current['expires']}). Revoke it first")
+        raise HTTPException(409, f"{name} already has an active delegation, until {current['expires']}. Revoke it first")
     existing = db.list_json(conn, "delegations")
     d = {"id": f"D-{len(existing) + 7:02d}", "to": body.to, "scope": body.scope, "rights": "Review and approval",
          "created": db.today(), "expires": body.expires, "active": True}
     db.put_json(conn, "delegations", d)
     scope = "all routine contracts" if body.scope == "all-routine" else ", ".join(body.scope)
-    db.add_audit(conn, user, "Delegation granted", f"{d['id']}: {USERS[body.to]['name']}, review and approval of {scope}, expires {body.expires}. Signature retained by KD.", "delegation")
+    db.add_audit(conn, user, "Delegation granted", f"{USERS[body.to]['name']}: review and approval of {scope}, until {body.expires}. Signature retained by KD.", "delegation")
     return db.list_json(conn, "delegations")
 
 
@@ -598,7 +598,8 @@ def revoke_delegation(did: str, user: str = Depends(get_user), conn=Depends(get_
         raise HTTPException(404, "Delegation not found")
     d["active"] = False
     db.put_json(conn, "delegations", d)
-    db.add_audit(conn, user, "Delegation revoked", did, "delegation")
+    scope = "all routine contracts" if d["scope"] == "all-routine" else ", ".join(d["scope"])
+    db.add_audit(conn, user, "Delegation revoked", f"{USERS[d['to']]['name']}: approval of {scope} handed back to Karandeep", "delegation")
     return db.list_json(conn, "delegations")
 
 
